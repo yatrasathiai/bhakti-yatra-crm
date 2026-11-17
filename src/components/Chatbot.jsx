@@ -14,7 +14,6 @@ function formatTime() {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// Simple text formatter for bullet points, bold text
 function FormattedText({ text }) {
   if (!text) return null;
   const lines = text.split("\n");
@@ -23,7 +22,6 @@ function FormattedText({ text }) {
       {lines.map((line, idx) => {
         if (!line.trim()) return <div key={idx} style={{ height: "6px" }} />;
         
-        // Render bold markers **word**
         const parts = line.split(/(\*\*.*?\*\*)/g);
         const parsed = parts.map((part, pIdx) => {
           if (part.startsWith("**") && part.endsWith("**")) {
@@ -46,15 +44,12 @@ export default function Chatbot({ onSelectPackage }) {
   const [messages, setMessages] = useState([
     {
       type: "bot",
-      text: "Namaste! 🙏 Main 'Yatra Saathi' hoon — aapka Devotional AI Guide.\n\nBharat ke kisi bhi teerth sthal (Ayodhya, Kedarnath, Vaishno Devi, Tirupati, Kashi, Vrindavan) ke darshan timings, packages, routes aur budget ke baare mein kuch bhi poochiye!",
+      text: "Namaste! 🙏 Main 'Yatra Saathi' hoon — aapka Devotional Travel Guide.\n\nBharat ke kisi bhi teerth sthal (Ayodhya, Kedarnath, Vaishno Devi, Tirupati, Kashi, Vrindavan) ke darshan timings, packages, routes aur budget ke baare mein kuch bhi poochiye!",
       time: formatTime(),
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("yatra_gemini_api_key") || "");
-  const [tempKey, setTempKey] = useState("");
-  const [showKeyModal, setShowKeyModal] = useState(false);
   const [chips, setChips] = useState([
     "✨ Ayodhya Ram Mandir",
     "🏔️ Kedarnath Guide",
@@ -95,10 +90,9 @@ export default function Chatbot({ onSelectPackage }) {
     }
 
     try {
-      const response = await askYatraAi(query, history, apiKey);
+      const response = await askYatraAi(query, history);
       addMessage("bot", response);
 
-      // Contextual chip updates
       const lower = query.toLowerCase();
       if (lower.includes("ayodhya") || lower.includes("ram")) {
         setChips(["Aarti pass kaise milega?", "Delhi to Ayodhya route", "VIP darshan rules", "Ayodhya packages"]);
@@ -131,23 +125,6 @@ export default function Chatbot({ onSelectPackage }) {
     ]);
   };
 
-  const saveApiKey = (key) => {
-    const cleaned = key.trim();
-    setApiKey(cleaned);
-    if (cleaned) {
-      localStorage.setItem("yatra_gemini_api_key", cleaned);
-    } else {
-      localStorage.removeItem("yatra_gemini_api_key");
-    }
-    setShowKeyModal(false);
-    addMessage(
-      "bot",
-      cleaned
-        ? "Jai Shri Ram! 🙏 Gemini AI Key activate ho gayi hai. Ab aap real-time live AI se smart yatra planning kar sakte hain!"
-        : "API Key remove kar di gayi hai. Smart offline mode active hai."
-    );
-  };
-
   return (
     <div className="yatra-chat-card">
       {/* HEADER */}
@@ -162,18 +139,11 @@ export default function Chatbot({ onSelectPackage }) {
               Yatra Saathi AI
               <span className="verified-badge">Teerth Guide</span>
             </h3>
-            <p>{apiKey ? "● Live Gemini AI Active" : "● Smart Offline Mode Active"}</p>
+            <p>● Always Online · Instant Devotional Assistant</p>
           </div>
         </div>
 
         <div className="yatra-chat-actions">
-          <button
-            className={`yatra-key-pill ${apiKey ? "active" : ""}`}
-            onClick={() => { setTempKey(apiKey); setShowKeyModal(true); }}
-            title="Connect Gemini AI Key"
-          >
-            {apiKey ? "✓ AI Connected" : "⚡ Connect AI Key"}
-          </button>
           <button className="yatra-btn-icon" onClick={clearChat} title="Clear Chat">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -254,7 +224,7 @@ export default function Chatbot({ onSelectPackage }) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Apna sawaal poochiye (e.g. Kedarnath yatra registration kaise karein?)..."
+            placeholder="Apna sawaal poochiye (jaise Kedarnath yatra registration, Ayodhya aarti)..."
             aria-label="Ask Yatra Saathi"
           />
           <button
@@ -270,51 +240,9 @@ export default function Chatbot({ onSelectPackage }) {
           </button>
         </form>
         <div className="yatra-footer-caption">
-          <span>✦ Powered by Gemini AI</span> · <span>Har Har Mahadev 🙏</span>
+          <span>✦ Powered by Yatra Saathi AI</span> · <span>Har Har Mahadev 🙏</span>
         </div>
       </div>
-
-      {/* API KEY MODAL */}
-      {showKeyModal && (
-        <div className="yatra-modal-backdrop" onClick={() => setShowKeyModal(false)}>
-          <div className="yatra-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="yatra-modal-top">
-              <h4>Connect Free Gemini AI</h4>
-              <button className="yatra-btn-text" onClick={() => setShowKeyModal(false)}>✕</button>
-            </div>
-            <div className="yatra-modal-content">
-              <p style={{ margin: 0, color: "#665C54" }}>
-                Yatra Saathi ko 100% intelligent banane ke liye Google Gemini API Key add karein:
-              </p>
-              <div style={{ background: "#FFF8F2", padding: "12px 16px", borderRadius: "10px", border: "1px solid #FED7AA" }}>
-                <span style={{ fontWeight: 600, color: "#9A3412" }}>Free Key lene ka tareeqa:</span>
-                <div style={{ marginTop: "4px" }}>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: "#E8590C", fontWeight: 700, textDecoration: "underline" }}
-                  >
-                    Google AI Studio se Free API Key lein ↗
-                  </a>
-                </div>
-              </div>
-              <input
-                type="password"
-                className="yatra-modal-input"
-                placeholder="AIzaSy..."
-                value={tempKey}
-                onChange={(e) => setTempKey(e.target.value)}
-              />
-            </div>
-            <div className="yatra-modal-actions">
-              <button className="yatra-btn-text" onClick={() => saveApiKey("")}>Clear / Offline</button>
-              <button className="yatra-btn-primary" onClick={() => saveApiKey(tempKey)}>Save & Activate</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-

@@ -6,9 +6,9 @@ Nirdesh:
 2. Jankari: Mandir ke darshan timings, aarti, VIP ticket rules, best season, senior citizen facilities (palki, battery car, helicopter), aur route ki sahi jaankari dein.
 3. Yatra Planning: User ki pasand, dates aur family size ke hisaab se guidance dein.
 4. Lead capture: Yatra plan discuss hone ke baad vinamrata se user ka naam aur WhatsApp/phone number poochhein taaki customized itinerary aur travel booking support share ki ja sake.
-5. Format: Jawab concise, clear bullet points aur sundar format mein dein.`;
+5. Format: Jawab concise, clear points aur sundar format mein dein.`;
 
-// Comprehensive Devotional Knowledge Base for Public Visitors
+// Fallback knowledge base if offline or network drops
 const KNOWLEDGE_BASE = [
   {
     keywords: ["ayodhya", "ram mandir", "ram lalla"],
@@ -37,8 +37,7 @@ const KNOWLEDGE_BASE = [
 ];
 
 export async function askYatraAi(userMessage, conversationHistory = []) {
-  // Use developer's API key if configured in .env
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyC4RXhV2tv_Ukcd9w31qZxuOQgudzbG9GM";
 
   if (apiKey && apiKey.trim().length > 10) {
     try {
@@ -50,7 +49,7 @@ export async function askYatraAi(userMessage, conversationHistory = []) {
         }));
 
       const payload = {
-        system_instruction: {
+        systemInstruction: {
           parts: [{ text: SYSTEM_PROMPT }]
         },
         contents: [
@@ -78,11 +77,11 @@ export async function askYatraAi(userMessage, conversationHistory = []) {
         if (reply) return reply;
       }
     } catch (err) {
-      console.warn("Live API fallback:", err);
+      console.warn("Live API call error:", err);
     }
   }
 
-  // Smart Contextual Knowledge Engine
+  // Fallback if needed
   const lower = userMessage.toLowerCase();
   for (const item of KNOWLEDGE_BASE) {
     if (item.keywords.some((k) => lower.includes(k))) {

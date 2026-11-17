@@ -8,7 +8,14 @@ Nirdesh:
 4. Lead capture: Yatra plan discuss hone ke baad vinamrata se user ka naam aur WhatsApp/phone number poochhein taaki customized itinerary aur travel booking support share ki ja sake.
 5. Format: Jawab concise, clear points aur sundar format mein dein.`;
 
-// Fallback knowledge base if offline or network drops
+// Cascade of models from newest to most stable
+const CANDIDATE_MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+];
+
 const KNOWLEDGE_BASE = [
   {
     keywords: ["ayodhya", "ram mandir", "ram lalla"],
@@ -40,48 +47,51 @@ export async function askYatraAi(userMessage, conversationHistory = []) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyC4RXhV2tv_Ukcd9w31qZxuOQgudzbG9GM";
 
   if (apiKey && apiKey.trim().length > 10) {
-    try {
-      const formattedHistory = conversationHistory
-        .filter((msg) => msg.type === "user" || msg.type === "bot")
-        .map((msg) => ({
-          role: msg.type === "user" ? "user" : "model",
-          parts: [{ text: msg.text }]
-        }));
+    const formattedHistory = conversationHistory
+      .filter((msg) => msg.type === "user" || msg.type === "bot")
+      .map((msg) => ({
+        role: msg.type === "user" ? "user" : "model",
+        parts: [{ text: msg.text }]
+      }));
 
-      const payload = {
-        systemInstruction: {
-          parts: [{ text: SYSTEM_PROMPT }]
-        },
-        contents: [
-          ...formattedHistory,
-          { role: "user", parts: [{ text: userMessage }] }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 600,
-        }
-      };
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey.trim()}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (reply) return reply;
+    const payload = {
+      systemInstruction: {
+        parts: [{ text: SYSTEM_PROMPT }]
+      },
+      contents: [
+        ...formattedHistory,
+        { role: "user", parts: [{ text: userMessage }] }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 700,
       }
-    } catch (err) {
-      console.warn("Live API call error:", err);
+    };
+
+    // Try newest models first with automatic fallback if busy
+    for (const model of CANDIDATE_MODELS) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (reply) return reply;
+        }
+      } catch (err) {
+        console.warn(`Model ${model} unavailable, trying next:`, err);
+      }
     }
   }
 
-  // Fallback if needed
+  // Fallback knowledge base if all external calls fail
   const lower = userMessage.toLowerCase();
   for (const item of KNOWLEDGE_BASE) {
     if (item.keywords.some((k) => lower.includes(k))) {

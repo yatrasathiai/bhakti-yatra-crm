@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { askYatraAi } from "./services/aiService";
+import { useState } from "react";
+import Chatbot from "./components/Chatbot";
 
 const destinations = [
   { id: "ayodhya", name: "Ayodhya", hindi: "Ram ki Nagri", days: "2 din · 1 raat", price: "₹3,999", from: "Delhi se", icon: "ॐ", tone: "peach" },
@@ -8,17 +8,11 @@ const destinations = [
   { id: "tirupati", name: "Tirupati", hindi: "Balaji Darshan", days: "3 din · 2 raat", price: "₹9,999", from: "Chennai se", icon: "श्री", tone: "gold" },
 ];
 
-const initialMessages = [
-  { type: "bot", text: "Namaste! 🙏 Main 'Yatra Saathi' hoon — aapka AI Spiritual Tour Guide.\n\nBharat ke kisi bhi teerth sthal (Ayodhya, Vaishno Devi, Kedarnath, Char Dham, Tirupati, Kashi) ke darshan, booking rules, best time aur budget packages ke baare mein kuch bhi poochiye!" },
-];
-
 function Icon({ name, size = 18 }) {
   const paths = {
     arrow: <><path d="M4 12h15"/><path d="m13 5 7 7-7 7"/></>,
     clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
-    send: <><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></>,
     sparkle: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8Z"/></>,
-    key: <><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.arrow}</svg>;
 }
@@ -50,191 +44,67 @@ function PilgrimageArt() {
   );
 }
 
-function PackageCard({ tour, onChoose, compact = false }) {
+function PackageCard({ tour, onChoose }) {
   return (
-    <button className={`package-card ${compact ? "package-card-compact" : ""}`} onClick={() => onChoose(tour)}>
+    <button className="package-card" onClick={() => onChoose(tour)}>
       <span className={`package-art ${tour.tone}`}><span>{tour.icon}</span></span>
       <span className="package-copy">
         <span className="package-hindi">{tour.hindi}</span>
         <strong>{tour.name}</strong>
-        <span className="package-meta"><Icon name="clock" size={14}/>{tour.days} · {tour.from}</span>
+        <span className="package-meta"><Icon name="clock" size={14}/>{tour.days}</span>
       </span>
       <span className="package-rate"><strong>{tour.price}<small>*</small></strong><span>/ vyakti se</span></span>
     </button>
   );
 }
 
-function Bubble({ message }) { 
-  return <div className={`message ${message.type}`}>{message.text}</div>; 
-}
-
 export default function App() {
-  const [messages, setMessages] = useState(initialMessages);
-  const [quickReplies, setQuickReplies] = useState([
-    "Ayodhya darshan timings kya hain?",
-    "Kedarnath yatra ki jankari",
-    "Vaishno Devi yatra rules",
-    "Popular Packages dekhein"
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("yatra_gemini_api_key") || "");
-  const [tempKey, setTempKey] = useState("");
-  const [showKeyModal, setShowKeyModal] = useState(false);
-
-  const messageEndRef = useRef(null);
-
-  useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, loading]);
-
-  const addMessage = (type, text) => {
-    const newMsg = { type, text, id: `${Date.now()}-${Math.random()}` };
-    setMessages((current) => [...current, newMsg]);
-    return newMsg;
-  };
-
-  const saveApiKey = (keyToSave) => {
-    const cleaned = keyToSave.trim();
-    setApiKey(cleaned);
-    if (cleaned) {
-      localStorage.setItem("yatra_gemini_api_key", cleaned);
-    } else {
-      localStorage.removeItem("yatra_gemini_api_key");
-    }
-    setShowKeyModal(false);
-    addMessage("bot", cleaned ? "Jai Shri Ram! 🙏 Aapki Gemini AI Key successfully connect ho gayi hai. Ab aap poori tarah se live smart AI ke sath yatra plan kar sakte hain!" : "API Key reset kar di gayi hai. Smart offline mode active hai.");
-  };
-
-  const handleSend = async (textToSend) => {
-    const text = (textToSend || input).trim();
-    if (!text || loading) return;
-
-    setInput("");
-    const userMsg = { type: "user", text, id: `${Date.now()}-${Math.random()}` };
-    const currentHistory = [...messages, userMsg];
-    setMessages(currentHistory);
-    setLoading(true);
-
-    // If user asked to see packages
-    if (/packages|yatra packages/i.test(text)) {
-      setLoading(false);
-      addMessage("bot", "Yeh hamari sabse lokpriya teerth yatra packages hain:");
-      setMessages((curr) => [
-        ...curr,
-        ...destinations.map((tour) => ({ type: "package", tour, id: `${tour.id}-${Date.now()}` }))
-      ]);
-      setQuickReplies(["Ayodhya details", "Kedarnath rules", "Custom package rate"]);
-      return;
-    }
-
-    try {
-      const aiReply = await askYatraAi(text, currentHistory, apiKey);
-      addMessage("bot", aiReply);
-
-      // Context-aware dynamic suggestions
-      if (/ayodhya/i.test(text)) {
-        setQuickReplies(["Ayodhya Ram Mandir Aarti pass kaise milega?", "Delhi se Ayodhya package rate", "Senior citizen facilities"]);
-      } else if (/kedarnath|chardham/i.test(text)) {
-        setQuickReplies(["Helicopter ticket kaise book karein?", "Char Dham registration link", "Senior citizens ke liye palki"]);
-      } else if (/vaishno/i.test(text)) {
-        setQuickReplies(["Battery car booking", "Ardhkuwari darshan time", "Vaishno Devi package details"]);
-      } else {
-        setQuickReplies(["Packages dekhein", "Ayodhya yatra", "Kedarnath guide", "Custom budget plan"]);
-      }
-    } catch {
-      addMessage("bot", "Maaf karein, network mein kuch samasya aayi. Kripya punah prayas karein.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const chooseTour = (tour) => {
-    handleSend(`${tour.name} yatra package ke baare mein vistar se batayein`);
-  };
-
   const jumpToChat = () => {
     document.querySelector("#assistant")?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
+  const handleChooseTour = (tour) => {
+    jumpToChat();
+  };
+
   return (
     <div className="site-shell">
-      {/* TOPBAR */}
+      {/* Topbar */}
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Yatra Saathi home">
           <span className="brand-mark">ॐ</span>
           <span>
             <strong>Yatra Saathi</strong>
-            <small>AI-Powered Devotional Journey Planner</small>
+            <small>Faithful journeys, made simple</small>
           </span>
         </a>
         <nav className="nav-links" aria-label="Main navigation">
           <a href="#destinations">Yatra places</a>
           <a href="#how-it-works">How it works</a>
         </nav>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <button 
-            className="api-key-btn" 
-            onClick={() => { setTempKey(apiKey); setShowKeyModal(true); }}
-            title="Configure Gemini API Key"
-          >
-            <Icon name="key" size={14}/>
-            {apiKey ? "AI Connected (Gemini)" : "⚙️ Connect AI Key (Free)"}
-          </button>
-          <button className="nav-cta" onClick={jumpToChat}>
-            Plan a Yatra <Icon name="arrow" size={16}/>
-          </button>
-        </div>
+        <button className="nav-cta" onClick={jumpToChat}>
+          Plan a yatra <Icon name="arrow" size={16}/>
+        </button>
       </header>
 
-      {/* API KEY CONFIG MODAL */}
-      {showKeyModal && (
-        <div className="modal-overlay" onClick={() => setShowKeyModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Connect Free Gemini AI Model</h3>
-              <button className="close-btn" onClick={() => setShowKeyModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <p>Apna Google Gemini API Key yahan paste karein taaki Yatra Saathi real live AI ban sake:</p>
-              <ul style={{ margin: "10px 0 14px 20px" }}>
-                <li>Yeh <strong>100% Free</strong> hai.</li>
-                <li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: "var(--brand-primary)", fontWeight: "600" }}>Google AI Studio se 1-click mein Free Key lein ↗</a></li>
-              </ul>
-              <input 
-                type="password"
-                className="modal-input" 
-                placeholder="AIzaSy..." 
-                value={tempKey}
-                onChange={(e) => setTempKey(e.target.value)}
-              />
-            </div>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => saveApiKey("")}>Clear / Offline Mode</button>
-              <button className="btn-primary" onClick={() => saveApiKey(tempKey)}>Save & Connect</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <main id="top">
-        {/* HERO SECTION */}
+        {/* Hero Section */}
         <section className="hero wrap">
           <div className="hero-copy">
-            <div className="eyebrow"><span className="eyebrow-dot"/>Pavitra Teerth Yatra Sahayak</div>
+            <div className="eyebrow"><span className="eyebrow-dot"/>A better way to go on yatra</div>
             <h1>Safar bhakti ka.<br/><em>Planning</em> aasaan.</h1>
             <p className="hero-description">
-              Darshan ka iraada ho, planning ki chinta nahi. Yatra Saathi AI aapko har teerth sthal ke darshan timings, packages, routes aur booking process ki poori jankari deta hai.
+              Darshan ka iraada ho, budget ki chinta nahi. Apne liye sahi teerth yatra dhoondhiye aur hamara AI sahayak aapko step by step guide karega.
             </p>
             <div className="hero-actions">
               <button className="button-primary" onClick={jumpToChat}>
-                Apni Yatra Plan Karein <Icon name="arrow" size={17}/>
+                Apni yatra plan karein <Icon name="arrow" size={17}/>
               </button>
-              <a className="text-link" href="#destinations">Popular Yatras Dekhein <span>↓</span></a>
+              <a className="text-link" href="#destinations">Popular yatras dekhein <span>↓</span></a>
             </div>
             <div className="hero-assurance">
               <span className="assurance-icon"><Icon name="sparkle"/></span>
-              <span><strong>AI Guidance + Authentic Yatra Info</strong><small>Darshan, passes, hotels aur itineraries ek jagah</small></span>
+              <span><strong>Saaf package details</strong><small>Price, duration aur departure ek jagah</small></span>
             </div>
           </div>
 
@@ -243,123 +113,58 @@ export default function App() {
               <PilgrimageArt/>
               <div className="art-label">
                 <span className="art-label-icon">✦</span>
-                <span><strong>Find your moment of peace</strong><small>Har yatra ki shuruaat ek shubh sankalp se</small></span>
+                <span><strong>Find your moment of peace</strong><small>Har yatra ki shuruaat ek iraade se</small></span>
               </div>
             </div>
             <div className="floating-note">
-              <span className="floating-note-icon">ॐ</span>
-              <span><small>Smart AI Travel Guide</small><strong>Ek kadam darshan ki ore</strong></span>
+              <span className="floating-note-icon">↗</span>
+              <span><small>Start your journey</small><strong>Ek kadam darshan ki ore</strong></span>
             </div>
             <div className="sun-doodle" aria-hidden="true">✳</div>
           </div>
 
-          {/* CHATBOT SECTION */}
-          <section className="assistant-card" id="assistant" aria-label="Yatra planning chatbot">
-            <div className="assistant-top">
-              <div className="assistant-avatar">ॐ</div>
-              <div className="assistant-heading">
-                <strong>Yatra Saathi (AI Devotional Guide)</strong>
-                <span><i/> {apiKey ? "Live Gemini AI Active" : "Smart Offline Assistant"}</span>
-              </div>
-              <button 
-                className="api-key-btn" 
-                onClick={() => { setTempKey(apiKey); setShowKeyModal(true); }}
-              >
-                <Icon name="key" size={13}/> {apiKey ? "Key Active" : "Add Free Key"}
-              </button>
-            </div>
-
-            <div className="assistant-context">
-              <span className="context-spark">✦</span>
-              <span>
-                <strong>Namaste! Kahan darshan ke liye chalna hai?</strong>
-                <small>Ayodhya, Kedarnath, Vaishno Devi ya kisi bhi mandir ke baare mein poochiye.</small>
-              </span>
-            </div>
-
-            <div className="chat-feed" aria-live="polite">
-              {messages.map((message) => 
-                message.type === "package" ? (
-                  <div className="chat-package-wrap" key={message.id}>
-                    <PackageCard tour={message.tour} onChoose={chooseTour} compact/>
-                  </div>
-                ) : (
-                  <Bubble message={message} key={message.id || message.text}/>
-                )
-              )}
-              {loading && (
-                <div className="message loading">
-                  <span>Yatra Saathi vichar kar raha hai... ॐ</span>
-                </div>
-              )}
-              <div ref={messageEndRef}/>
-            </div>
-
-            {/* QUICK SUGGESTIONS */}
-            <div className="suggestion-row">
-              {quickReplies.map((reply) => (
-                <button className="suggestion" key={reply} onClick={() => handleSend(reply)}>
-                  {reply} <span>↗</span>
-                </button>
-              ))}
-            </div>
-
-            {/* CHAT COMPOSER */}
-            <form className="chat-composer" onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
-              <input 
-                value={input} 
-                onChange={(e) => setInput(e.target.value)} 
-                placeholder="Apna sawaal ya yatra destination likhein..." 
-                aria-label="Message Yatra Saathi" 
-                autoComplete="off"
-              />
-              <button type="submit" aria-label="Send message" disabled={!input.trim() || loading}>
-                <Icon name="send" size={17}/>
-              </button>
-            </form>
-
-            <div className="chat-footnote">
-              <span>✦</span> Powered by Gemini AI · Bhakti Yatra Samadhan
-            </div>
+          {/* DEDICATED REDESIGNED CHATBOT COMPONENT */}
+          <section id="assistant" style={{ gridColumn: "span 2", width: "100%", marginTop: "24px" }}>
+            <Chatbot onSelectPackage={handleChooseTour} />
           </section>
         </section>
 
-        {/* POPULAR DESTINATIONS */}
+        {/* Destination Section */}
         <section className="destination-section wrap" id="destinations">
           <div className="section-heading">
             <div>
               <div className="eyebrow">Aapki agli manzil</div>
-              <h2>Popular Teerth Yatra Packages</h2>
+              <h2>Popular yatra packages</h2>
             </div>
             <a className="view-all" href="#assistant" onClick={jumpToChat}>
-              Sabhi Options Poochhein <Icon name="arrow" size={16}/>
+              Sabhi options poochhein <Icon name="arrow" size={16}/>
             </a>
           </div>
           <div className="destination-grid">
             {destinations.map((tour) => (
-              <PackageCard key={tour.id} tour={tour} onChoose={chooseTour}/>
+              <PackageCard key={tour.id} tour={tour} onChoose={handleChooseTour}/>
             ))}
           </div>
-          <p className="price-disclaimer">* Package rates demo rates hain. Detailed itinerary aur actual booking ke liye chat par sampark karein.</p>
+          <p className="price-disclaimer">* Yeh demo rates sirf sample data hain. Actual packages, prices aur dates organiser se confirm karein.</p>
         </section>
 
-        {/* HOW IT WORKS */}
+        {/* How it works */}
         <section className="how-section" id="how-it-works">
           <div className="wrap how-inner">
-            <span>01 · Destination aur darshan dates chunein</span>
-            <span>02 · Yatra Saathi AI se route & budget samjhein</span>
-            <span>03 · Hassle-free aarti & stay booking payein</span>
+            <span>01 · Destination batayein</span>
+            <span>02 · Date aur group size dein</span>
+            <span>03 · Team se follow-up lein</span>
           </div>
         </section>
       </main>
 
-      {/* FOOTER */}
+      {/* Footer */}
       <footer className="footer wrap">
         <a className="brand footer-brand" href="#top">
           <span className="brand-mark">ॐ</span>
-          <span><strong>Yatra Saathi</strong><small>Bhakti, bina kisi uljhan ke.</small></span>
+          <span><strong>Yatra Saathi</strong><small>Bhakti, bina uljhan.</small></span>
         </a>
-        <span>Made for Sacred Journeys <b>✦</b> Har Har Mahadev</span>
+        <span>Made for meaningful journeys <b>✦</b></span>
       </footer>
     </div>
   );

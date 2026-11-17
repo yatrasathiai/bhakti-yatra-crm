@@ -103,3 +103,4 @@ export async function askYatraAi(userMessage, conversationHistory = [], customAp
 
   return `Namaste! 🙏 Main aapki Bhakti Yatra planning mein madad kar sakta hoon.\n\nAap kahan darshan ke liye jaana chahte hain? (Jaise Ayodhya, Vaishno Devi, Kedarnath, Char Dham, Tirupati, Kashi Varanasi).\n\n(Tip: Agar aapko real-time AI powers chahiye, toh upar '⚙️ AI Key' par click karke free Gemini key daal sakte hain!)`;
 }
+

@@ -235,3 +235,36 @@
   border-color: #FECACA;
 }
 
+/* ================= TOURS RESPONSIVE ================= */
+@media (max-width: 768px) {
+  .tours-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .tours-catalog-toolbar {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tours-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tour-card-rich {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .tours-catalog-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .tours-toolbar-left {
+    justify-content: space-between;
+  }
+}
+

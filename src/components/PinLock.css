@@ -165,3 +165,26 @@
   align-items: center;
   gap: 6px;
 }
+
+/* ================= PIN LOCK RESPONSIVE ================= */
+@media (max-width: 420px) {
+  .pin-screen-wrapper {
+    padding: 14px;
+  }
+
+  .pin-card-box {
+    padding: 28px 18px;
+    border-radius: 16px;
+  }
+
+  .pin-boxes-row {
+    gap: 8px;
+  }
+
+  .pin-box-input {
+    width: 46px;
+    height: 52px;
+    font-size: 1.5rem;
+    border-radius: 10px;
+  }
+}

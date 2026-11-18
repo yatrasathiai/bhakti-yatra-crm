@@ -56,6 +56,7 @@ function downloadLeadsCsv(leads) {
 export default function CrmDashboard({ onSwitchToChat }) {
   // Navigation
   const [activeTab, setActiveTab] = useState("leads"); // "overview" | "leads" | "pipeline" | "tours" | "settings"
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Data
   const [leads, setLeads] = useState([]);
@@ -270,20 +271,37 @@ export default function CrmDashboard({ onSwitchToChat }) {
 
   return (
     <div className="crm-app-shell">
+      {/* Mobile Sidebar Backdrop */}
+      {mobileMenuOpen && (
+        <div className="crm-sidebar-backdrop" onClick={() => setMobileMenuOpen(false)} />
+      )}
+
       {/* ================= LEFT SAAS SIDEBAR ================= */}
-      <aside className="crm-sidebar">
+      <aside className={`crm-sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
         <div className="crm-sidebar-brand">
-          <div className="crm-brand-icon">ॐ</div>
-          <div className="crm-brand-title">
-            <strong>Yatra Saathi CRM</strong>
-            <span>Pilgrimage Business Suite</span>
+          <div className="crm-brand-left">
+            <div className="crm-brand-icon">ॐ</div>
+            <div className="crm-brand-title">
+              <strong>Yatra Saathi CRM</strong>
+              <span>Pilgrimage Business Suite</span>
+            </div>
           </div>
+          <button
+            className="crm-sidebar-close-btn"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
         </div>
 
         <nav className="crm-nav-list">
           <button
             className={`crm-nav-item ${activeTab === "overview" ? "active" : ""}`}
-            onClick={() => setActiveTab("overview")}
+            onClick={() => {
+              setActiveTab("overview");
+              setMobileMenuOpen(false);
+            }}
           >
             <div className="crm-nav-left">
               <span>📊</span> Overview
@@ -292,7 +310,10 @@ export default function CrmDashboard({ onSwitchToChat }) {
 
           <button
             className={`crm-nav-item ${activeTab === "leads" ? "active" : ""}`}
-            onClick={() => setActiveTab("leads")}
+            onClick={() => {
+              setActiveTab("leads");
+              setMobileMenuOpen(false);
+            }}
           >
             <div className="crm-nav-left">
               <span>👥</span> All Leads
@@ -302,7 +323,10 @@ export default function CrmDashboard({ onSwitchToChat }) {
 
           <button
             className={`crm-nav-item ${activeTab === "pipeline" ? "active" : ""}`}
-            onClick={() => setActiveTab("pipeline")}
+            onClick={() => {
+              setActiveTab("pipeline");
+              setMobileMenuOpen(false);
+            }}
           >
             <div className="crm-nav-left">
               <span>📌</span> Pipeline Kanban
@@ -312,7 +336,10 @@ export default function CrmDashboard({ onSwitchToChat }) {
 
           <button
             className={`crm-nav-item ${activeTab === "tours" ? "active" : ""}`}
-            onClick={() => setActiveTab("tours")}
+            onClick={() => {
+              setActiveTab("tours");
+              setMobileMenuOpen(false);
+            }}
           >
             <div className="crm-nav-left">
               <span>📦</span> Yatra Packages
@@ -322,7 +349,10 @@ export default function CrmDashboard({ onSwitchToChat }) {
 
           <button
             className={`crm-nav-item ${activeTab === "settings" ? "active" : ""}`}
-            onClick={() => setActiveTab("settings")}
+            onClick={() => {
+              setActiveTab("settings");
+              setMobileMenuOpen(false);
+            }}
           >
             <div className="crm-nav-left">
               <span>⚙️</span> Settings & PIN
@@ -357,20 +387,33 @@ export default function CrmDashboard({ onSwitchToChat }) {
       <div className="crm-main-viewport">
         {/* TOPBAR */}
         <header className="crm-topbar">
-          <div className="crm-topbar-title">
-            <h1>
-              {activeTab === "overview" && "Executive Overview"}
-              {activeTab === "leads" && "Devotee Enquiries & Leads"}
-              {activeTab === "pipeline" && "Yatra Lead Pipeline"}
-              {activeTab === "tours" && "Pavitra Yatra Packages Catalog"}
-              {activeTab === "settings" && "System & Security Settings"}
-            </h1>
+          <div className="crm-topbar-left">
+            <button
+              className="crm-hamburger-btn"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open Navigation Menu"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+            <div className="crm-topbar-title">
+              <h1>
+                {activeTab === "overview" && "Executive Overview"}
+                {activeTab === "leads" && "Devotee Enquiries & Leads"}
+                {activeTab === "pipeline" && "Yatra Lead Pipeline"}
+                {activeTab === "tours" && "Pavitra Yatra Packages Catalog"}
+                {activeTab === "settings" && "System & Security Settings"}
+              </h1>
+            </div>
           </div>
 
           <div className="crm-topbar-actions">
             {activeTab === "tours" ? (
               <button
-                className="btn-primary"
+                className="btn-primary btn-topbar-action"
                 onClick={() => {
                   setTourForm({
                     id: "",
@@ -385,26 +428,41 @@ export default function CrmDashboard({ onSwitchToChat }) {
                   setShowTourModal(true);
                 }}
               >
-                + Naya Package Add Karein
+                <span>+</span>
+                <span className="btn-label-desktop">Naya Package Add Karein</span>
+                <span className="btn-label-mobile">Package</span>
               </button>
             ) : (
               <>
                 <button
-                  className="btn-secondary"
+                  className="btn-secondary btn-topbar-action btn-export-action"
                   onClick={() => {
                     const ok = downloadLeadsCsv(leads);
                     if (ok) showToast("📥 Leads CSV download ho gaya!");
                   }}
+                  title="Export Leads CSV"
                 >
-                  📥 Export CSV
+                  <span>📥</span>
+                  <span className="btn-label-desktop">Export CSV</span>
                 </button>
-                <button className="btn-primary" onClick={() => setShowAddLeadModal(true)}>
-                  + Nayi Lead
+                <button
+                  className="btn-primary btn-topbar-action"
+                  onClick={() => setShowAddLeadModal(true)}
+                >
+                  <span>+</span>
+                  <span className="btn-label-desktop">Nayi Lead</span>
+                  <span className="btn-label-mobile">Lead</span>
                 </button>
               </>
             )}
-            <button className="btn-secondary" onClick={onSwitchToChat}>
-              💬 Public Chatbot
+            <button
+              className="btn-secondary btn-topbar-action btn-bot-action"
+              onClick={onSwitchToChat}
+              title="Open Public Devotional Chatbot"
+            >
+              <span>💬</span>
+              <span className="btn-label-desktop">Public Chatbot</span>
+              <span className="btn-label-mobile">Bot</span>
             </button>
           </div>
         </header>
@@ -834,6 +892,47 @@ export default function CrmDashboard({ onSwitchToChat }) {
             />
           )}
         </main>
+
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
+        <nav className="crm-mobile-bottom-bar">
+          <button
+            className={`mobile-bar-item ${activeTab === "overview" ? "active" : ""}`}
+            onClick={() => setActiveTab("overview")}
+          >
+            <span className="mobile-bar-icon">📊</span>
+            <span className="mobile-bar-label">Overview</span>
+          </button>
+          <button
+            className={`mobile-bar-item ${activeTab === "leads" ? "active" : ""}`}
+            onClick={() => setActiveTab("leads")}
+          >
+            <span className="mobile-bar-icon">👥</span>
+            <span className="mobile-bar-label">Leads</span>
+            {leads.length > 0 && <span className="mobile-bar-badge">{leads.length}</span>}
+          </button>
+          <button
+            className={`mobile-bar-item ${activeTab === "pipeline" ? "active" : ""}`}
+            onClick={() => setActiveTab("pipeline")}
+          >
+            <span className="mobile-bar-icon">📌</span>
+            <span className="mobile-bar-label">Pipeline</span>
+            {stats.new > 0 && <span className="mobile-bar-badge dot" />}
+          </button>
+          <button
+            className={`mobile-bar-item ${activeTab === "tours" ? "active" : ""}`}
+            onClick={() => setActiveTab("tours")}
+          >
+            <span className="mobile-bar-icon">📦</span>
+            <span className="mobile-bar-label">Packages</span>
+          </button>
+          <button
+            className={`mobile-bar-item ${activeTab === "settings" ? "active" : ""}`}
+            onClick={() => setActiveTab("settings")}
+          >
+            <span className="mobile-bar-icon">⚙️</span>
+            <span className="mobile-bar-label">Settings</span>
+          </button>
+        </nav>
       </div>
 
       {/* ================= MODAL: ADD/EDIT TOUR PACKAGE ================= */}

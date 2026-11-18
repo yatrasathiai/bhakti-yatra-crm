@@ -500,3 +500,80 @@
 .btn-danger-solid:hover {
   background: #B91C1C;
 }
+
+/* ================= SETTINGS RESPONSIVE ================= */
+@media (max-width: 768px) {
+  .settings-page-wrapper {
+    padding: 6px 6px 80px 6px;
+    gap: 14px;
+  }
+
+  .settings-header-banner {
+    padding: 16px 18px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .btn-lock-session {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .settings-card-pro-header {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .settings-card-body {
+    padding: 16px;
+  }
+
+  .db-status-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .db-status-right {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .db-status-right button {
+    width: 100%;
+  }
+
+  .danger-zone-box {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .btn-danger-solid {
+    width: 100%;
+  }
+
+  .btn-pro-primary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .backup-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-form-row {
+    flex-direction: column;
+  }
+
+  .settings-pin-helper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+

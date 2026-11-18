@@ -6,7 +6,13 @@ import {
   deleteLead,
   getLeadStats,
 } from "../services/databaseService";
+import {
+  fetchPackages,
+  savePackage,
+  deletePackage,
+} from "../services/packageService";
 import "./CrmDashboard.css";
+import "./ToursCatalog.css";
 
 const STATUS_CONFIG = {
   new: { label: "New Lead", pillClass: "new", dotColor: "#F59E0B" },
@@ -14,15 +20,6 @@ const STATUS_CONFIG = {
   booked: { label: "Booked", pillClass: "booked", dotColor: "#10B981" },
   cancelled: { label: "Cancelled", pillClass: "cancelled", dotColor: "#EF4444" },
 };
-
-const DEFAULT_TOURS = [
-  { id: "ayodhya", name: "Ayodhya Dham", hindi: "Ram Janmabhoomi Darshan", days: "2 Din · 1 Raat", price: "₹3,999", icon: "ॐ" },
-  { id: "kedarnath", name: "Kedarnath & Badrinath", hindi: "Do Dham Himalayan Yatra", days: "6 Din · 5 Raat", price: "₹14,999", icon: "🏔️" },
-  { id: "vaishno", name: "Mata Vaishno Devi", hindi: "Katra Dham Yatra", days: "4 Din · 3 Raat", price: "₹8,499", icon: "🌸" },
-  { id: "chardham", name: "Complete Char Dham", hindi: "Yamunotri, Gangotri, Kedar, Badri", days: "10 Din · 9 Raat", price: "₹24,999", icon: "✨" },
-  { id: "tirupati", name: "Tirupati Balaji", hindi: "Venkateswara Swamy Darshan", days: "3 Din · 2 Raat", price: "₹9,999", icon: "🚩" },
-  { id: "kashi", name: "Kashi Vishwanath & Ganga Aarti", hindi: "Varanasi Spiritual Tour", days: "3 Din · 2 Raat", price: "₹6,999", icon: "🔱" },
-];
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -34,7 +31,6 @@ function formatDate(iso) {
   );
 }
 
-// Download CSV cleanly
 function downloadLeadsCsv(leads) {
   if (!leads.length) return false;
   const headers = ["ID", "Name", "Phone", "Destination", "Travellers", "Date", "Status", "Notes", "Created At"];
@@ -61,26 +57,27 @@ function downloadLeadsCsv(leads) {
 }
 
 export default function CrmDashboard({ onSwitchToChat }) {
-  // Navigation State
+  // Navigation
   const [activeTab, setActiveTab] = useState("leads"); // "overview" | "leads" | "pipeline" | "tours" | "settings"
 
-  // Data State
+  // Data
   const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState({});
+  const [packagesList, setPackagesList] = useState([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDest, setFilterDest] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  // Inspector Drawer State
+  // Inspector Drawer & Modals
   const [inspectingLead, setInspectingLead] = useState(null);
-
-  // Modals & Popups
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
   const [showWaModal, setShowWaModal] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [confirmDeleteTourId, setConfirmDeleteTourId] = useState(null);
 
-  // Toast Notification State
+  // Toast Notifications
   const [toasts, setToasts] = useState([]);
   const showToast = (message) => {
     const id = Date.now();
@@ -90,8 +87,8 @@ export default function CrmDashboard({ onSwitchToChat }) {
     }, 3000);
   };
 
-  // Form State for Manual Lead
-  const [addForm, setAddForm] = useState({
+  // Lead Form
+  const [addLeadForm, setAddLeadForm] = useState({
     name: "",
     phone: "",
     destination: "Ayodhya",
@@ -101,8 +98,19 @@ export default function CrmDashboard({ onSwitchToChat }) {
     notes: "",
   });
 
-  // Settings State
-  const [currentPin, setCurrentPin] = useState("1234");
+  // Tour Package Form (Add / Edit)
+  const [tourForm, setTourForm] = useState({
+    id: "",
+    name: "",
+    hindi: "",
+    days: "3 Din · 2 Raat",
+    price: "₹7,999",
+    from: "Delhi se",
+    icon: "ॐ",
+    inclusions: "Hotel Stay, Satvik Meals, AC Cab, VIP Darshan Assist",
+  });
+
+  // Settings
   const [newPin, setNewPin] = useState("");
 
   const loadData = useCallback(async () => {
@@ -110,6 +118,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
     const [leadsData, statsData] = await Promise.all([fetchLeads(), getLeadStats()]);
     setLeads(leadsData);
     setStats(statsData);
+    setPackagesList(fetchPackages());
     setLoading(false);
   }, []);
 
@@ -119,7 +128,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
     return () => clearInterval(interval);
   }, [loadData]);
 
-  // Lead Operations
+  // Lead Actions
   const handleUpdateStatus = async (id, newStatus) => {
     await updateLead(id, { status: newStatus });
     setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: newStatus } : l)));
@@ -138,7 +147,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
     }
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDeleteLead = async () => {
     if (!confirmDeleteId) return;
     await deleteLead(confirmDeleteId);
     if (inspectingLead?.id === confirmDeleteId) setInspectingLead(null);
@@ -149,12 +158,12 @@ export default function CrmDashboard({ onSwitchToChat }) {
 
   const handleCreateLead = async (e) => {
     e.preventDefault();
-    if (!addForm.name.trim() || !addForm.phone.trim()) {
+    if (!addLeadForm.name.trim() || !addLeadForm.phone.trim()) {
       return showToast("⚠️ Naam aur Phone zaroori hain!");
     }
-    await createLead(addForm);
-    setShowAddModal(false);
-    setAddForm({
+    await createLead(addLeadForm);
+    setShowAddLeadModal(false);
+    setAddLeadForm({
       name: "",
       phone: "",
       destination: "Ayodhya",
@@ -163,8 +172,60 @@ export default function CrmDashboard({ onSwitchToChat }) {
       status: "new",
       notes: "",
     });
-    showToast("✅ Nayi lead successfully create ho gayi!");
+    showToast("✅ Nayi lead successfully save ho gayi!");
     loadData();
+  };
+
+  // Tour Package Actions
+  const handleSaveTourSubmit = (e) => {
+    e.preventDefault();
+    if (!tourForm.name.trim() || !tourForm.price.trim()) {
+      return showToast("⚠️ Package Name aur Price zaroori hain!");
+    }
+
+    const payload = {
+      ...tourForm,
+      inclusions: typeof tourForm.inclusions === "string"
+        ? tourForm.inclusions.split(",").map((s) => s.trim()).filter(Boolean)
+        : tourForm.inclusions,
+    };
+
+    const updated = savePackage(payload);
+    setPackagesList(updated);
+    setShowTourModal(false);
+    setTourForm({
+      id: "",
+      name: "",
+      hindi: "",
+      days: "3 Din · 2 Raat",
+      price: "₹7,999",
+      from: "Delhi se",
+      icon: "ॐ",
+      inclusions: "Hotel Stay, Satvik Meals, AC Cab, VIP Darshan Assist",
+    });
+    showToast("✅ Yatra Package successfully save ho gaya!");
+  };
+
+  const handleOpenEditTour = (tour) => {
+    setTourForm({
+      id: tour.id,
+      name: tour.name,
+      hindi: tour.hindi || "",
+      days: tour.days || "",
+      price: tour.price || "",
+      from: tour.from || "",
+      icon: tour.icon || "ॐ",
+      inclusions: Array.isArray(tour.inclusions) ? tour.inclusions.join(", ") : (tour.inclusions || ""),
+    });
+    setShowTourModal(true);
+  };
+
+  const handleConfirmDeleteTour = () => {
+    if (!confirmDeleteTourId) return;
+    const updated = deletePackage(confirmDeleteTourId);
+    setPackagesList(updated);
+    setConfirmDeleteTourId(null);
+    showToast("Package delete ho gaya");
   };
 
   // WhatsApp Sender
@@ -188,7 +249,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
     showToast("📱 WhatsApp khul raha hai...");
   };
 
-  // Unique destinations for filter
+  // Unique Destinations
   const uniqueDestinations = useMemo(() => {
     const set = new Set();
     leads.forEach((l) => l.destination && set.add(l.destination.toLowerCase()));
@@ -262,6 +323,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
             <div className="crm-nav-left">
               <span>📦</span> Yatra Packages
             </div>
+            <span className="crm-nav-badge">{packagesList.length}</span>
           </button>
 
           <button
@@ -306,21 +368,47 @@ export default function CrmDashboard({ onSwitchToChat }) {
               {activeTab === "overview" && "Executive Overview"}
               {activeTab === "leads" && "Devotee Enquiries & Leads"}
               {activeTab === "pipeline" && "Yatra Lead Pipeline"}
-              {activeTab === "tours" && "Pilgrimage Packages Catalog"}
+              {activeTab === "tours" && "Pavitra Yatra Packages Catalog"}
               {activeTab === "settings" && "System & Security Settings"}
             </h1>
           </div>
 
           <div className="crm-topbar-actions">
-            <button className="btn-secondary" onClick={() => {
-              const ok = downloadLeadsCsv(leads);
-              if (ok) showToast("📥 Leads CSV download ho gaya!");
-            }}>
-              📥 Export CSV
-            </button>
-            <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-              + Nayi Lead
-            </button>
+            {activeTab === "tours" ? (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setTourForm({
+                    id: "",
+                    name: "",
+                    hindi: "",
+                    days: "3 Din · 2 Raat",
+                    price: "₹7,999",
+                    from: "Delhi se",
+                    icon: "ॐ",
+                    inclusions: "Hotel Stay, Satvik Meals, AC Cab, VIP Darshan Assist",
+                  });
+                  setShowTourModal(true);
+                }}
+              >
+                + Naya Package Add Karein
+              </button>
+            ) : (
+              <>
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    const ok = downloadLeadsCsv(leads);
+                    if (ok) showToast("📥 Leads CSV download ho gaya!");
+                  }}
+                >
+                  📥 Export CSV
+                </button>
+                <button className="btn-primary" onClick={() => setShowAddLeadModal(true)}>
+                  + Nayi Lead
+                </button>
+              </>
+            )}
             <button className="btn-secondary" onClick={onSwitchToChat}>
               💬 Public Chatbot
             </button>
@@ -375,15 +463,29 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     <div className="metric-icon-wrap">🔥</div>
                   </div>
                   <span className="metric-value">{stats.topDestination || "—"}</span>
-                  <span className="metric-footer">{stats.topDestCount ? `${stats.topDestCount} devotee enquiries` : "Tracking active"}</span>
+                  <span className="metric-footer">
+                    {stats.topDestCount ? `${stats.topDestCount} devotee enquiries` : "Tracking active"}
+                  </span>
                 </div>
               </div>
 
               {/* RECENT LEADS QUICK TABLE */}
               <div className="crm-table-card">
-                <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--crm-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    padding: "16px 20px",
+                    borderBottom: "1px solid var(--crm-border)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <strong style={{ fontSize: "0.95rem" }}>Taza Enquiries (Recent Leads)</strong>
-                  <button className="btn-secondary" style={{ padding: "5px 12px", fontSize: "0.78rem" }} onClick={() => setActiveTab("leads")}>
+                  <button
+                    className="btn-secondary"
+                    style={{ padding: "5px 12px", fontSize: "0.78rem" }}
+                    onClick={() => setActiveTab("leads")}
+                  >
                     Sabhi Leads Dekhein ➔
                   </button>
                 </div>
@@ -628,25 +730,99 @@ export default function CrmDashboard({ onSwitchToChat }) {
             </div>
           )}
 
-          {/* TAB 4: YATRA PACKAGES CATALOG */}
+          {/* TAB 4: REDESIGNED YATRA PACKAGES CATALOG */}
           {activeTab === "tours" && (
-            <div className="tours-grid">
-              {DEFAULT_TOURS.map((tour) => (
-                <div key={tour.id} className="tour-admin-card">
-                  <div className="tour-card-header">
-                    <div className="tour-icon">{tour.icon}</div>
-                    <span className="dest-pill">Active Package</span>
-                  </div>
-                  <div>
-                    <h3>{tour.name}</h3>
-                    <p style={{ marginTop: "4px" }}>{tour.hindi}</p>
-                    <p style={{ color: "var(--crm-text-muted)", fontSize: "0.78rem", marginTop: "2px" }}>
-                      ⏱️ {tour.days}
-                    </p>
-                  </div>
-                  <div className="tour-card-price">{tour.price} <small style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--crm-text-muted)" }}>/ vyakti se</small></div>
+            <div className="tours-catalog-wrapper">
+              <div className="tours-catalog-toolbar">
+                <div className="tours-toolbar-left">
+                  <h3>Pavitra Yatra Packages</h3>
+                  <span className="tours-count-badge">{packagesList.length} Active Packages</span>
                 </div>
-              ))}
+                <div>
+                  <button
+                    className="btn-primary"
+                    onClick={() => {
+                      setTourForm({
+                        id: "",
+                        name: "",
+                        hindi: "",
+                        days: "3 Din · 2 Raat",
+                        price: "₹7,999",
+                        from: "Delhi se",
+                        icon: "ॐ",
+                        inclusions: "Hotel Stay, Satvik Meals, AC Cab, VIP Darshan Assist",
+                      });
+                      setShowTourModal(true);
+                    }}
+                  >
+                    + Naya Package Add Karein
+                  </button>
+                </div>
+              </div>
+
+              <div className="tours-grid">
+                {packagesList.map((tour) => (
+                  <div key={tour.id} className="tour-card-rich">
+                    <div className="tour-card-topbar">
+                      <div className="tour-icon-box">{tour.icon || "ॐ"}</div>
+                      <div className="tour-top-actions">
+                        <span className="tour-status-tag">
+                          <i /> Active
+                        </span>
+                        <button
+                          className="btn-card-edit"
+                          onClick={() => handleOpenEditTour(tour)}
+                          title="Edit Package"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          className="btn-card-delete"
+                          onClick={() => setConfirmDeleteTourId(tour.id)}
+                          title="Delete Package"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="tour-card-info">
+                      <h4>{tour.name}</h4>
+                      {tour.hindi && <span className="tour-card-hindi">{tour.hindi}</span>}
+                    </div>
+
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", fontSize: "0.78rem" }}>
+                      <span className="inclusion-pill">⏱️ {tour.days}</span>
+                      {tour.from && <span className="inclusion-pill">📍 {tour.from}</span>}
+                    </div>
+
+                    <div className="tour-inclusions-list">
+                      {Array.isArray(tour.inclusions) &&
+                        tour.inclusions.map((item, idx) => (
+                          <span key={idx} className="inclusion-pill">
+                            ✓ {item}
+                          </span>
+                        ))}
+                    </div>
+
+                    <div className="tour-card-footer">
+                      <div className="tour-price-block">
+                        <span className="tour-price-label">Starting Price</span>
+                        <div className="tour-price-val">
+                          {tour.price} <small>/ vyakti</small>
+                        </div>
+                      </div>
+                      <button
+                        className="btn-secondary"
+                        style={{ height: "34px", fontSize: "0.78rem" }}
+                        onClick={() => handleOpenEditTour(tour)}
+                      >
+                        Modify Rates
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -663,13 +839,18 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     placeholder="Enter new 4-digit PIN"
                     value={newPin}
                     onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
-                    style={{ padding: "10px 14px", border: "1px solid var(--crm-border)", borderRadius: "8px", width: "220px", fontSize: "1.1rem" }}
+                    style={{
+                      padding: "10px 14px",
+                      border: "1px solid var(--crm-border)",
+                      borderRadius: "8px",
+                      width: "220px",
+                      fontSize: "1.1rem",
+                    }}
                   />
                   <button
                     className="btn-primary"
                     onClick={() => {
                       if (newPin.length !== 4) return showToast("⚠️ PIN 4 digits ka hona chahiye!");
-                      setCurrentPin(newPin);
                       setNewPin("");
                       showToast("✅ Admin PIN successfully updated!");
                     }}
@@ -682,16 +863,153 @@ export default function CrmDashboard({ onSwitchToChat }) {
               <div className="settings-card">
                 <h3>💾 Database & Cloud Sync Status</h3>
                 <p>Yatra Saathi CRM data storage configuration:</p>
-                <div style={{ background: "#FAF8F6", padding: "14px", borderRadius: "8px", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div
+                  style={{
+                    background: "#FAF8F6",
+                    padding: "14px",
+                    borderRadius: "8px",
+                    fontSize: "0.85rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
                   <div><strong>Storage Engine:</strong> Local Browser Storage (Active & Resilient)</div>
                   <div><strong>Supabase Cloud:</strong> Configurable via <code>.env</code> (VITE_SUPABASE_URL)</div>
                   <div><strong>Total Cached Records:</strong> {leads.length} devotee leads</div>
+                  <div><strong>Active Yatra Packages:</strong> {packagesList.length} packages</div>
                 </div>
               </div>
             </div>
           )}
         </main>
       </div>
+
+      {/* ================= MODAL: ADD/EDIT TOUR PACKAGE ================= */}
+      {showTourModal && (
+        <div className="drawer-backdrop" onClick={() => setShowTourModal(false)}>
+          <div className="crm-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="crm-modal-header">
+              <h3>{tourForm.id ? "✏️ Package Edit Karein" : "+ Naya Yatra Package Add Karein"}</h3>
+              <button className="btn-icon-soft" onClick={() => setShowTourModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveTourSubmit}>
+              <div className="crm-modal-body">
+                <div className="crm-form-group">
+                  <label>Package / Dham Name *</label>
+                  <input
+                    className="crm-form-input"
+                    type="text"
+                    required
+                    placeholder="e.g. Ayodhya Shri Ram Dham"
+                    value={tourForm.name}
+                    onChange={(e) => setTourForm({ ...tourForm, name: e.target.value })}
+                  />
+                </div>
+                <div className="crm-form-group">
+                  <label>Hindi Tagline / Description</label>
+                  <input
+                    className="crm-form-input"
+                    type="text"
+                    placeholder="e.g. Ram Lalla Darshan & Saryu Maha Aarti"
+                    value={tourForm.hindi}
+                    onChange={(e) => setTourForm({ ...tourForm, hindi: e.target.value })}
+                  />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="crm-form-group">
+                    <label>Duration *</label>
+                    <input
+                      className="crm-form-input"
+                      type="text"
+                      required
+                      placeholder="e.g. 3 Din · 2 Raat"
+                      value={tourForm.days}
+                      onChange={(e) => setTourForm({ ...tourForm, days: e.target.value })}
+                    />
+                  </div>
+                  <div className="crm-form-group">
+                    <label>Starting Price *</label>
+                    <input
+                      className="crm-form-input"
+                      type="text"
+                      required
+                      placeholder="e.g. ₹5,999"
+                      value={tourForm.price}
+                      onChange={(e) => setTourForm({ ...tourForm, price: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px" }}>
+                  <div className="crm-form-group">
+                    <label>Departure Point</label>
+                    <input
+                      className="crm-form-input"
+                      type="text"
+                      placeholder="e.g. Delhi / Lucknow se"
+                      value={tourForm.from}
+                      onChange={(e) => setTourForm({ ...tourForm, from: e.target.value })}
+                    />
+                  </div>
+                  <div className="crm-form-group">
+                    <label>Icon Emblem</label>
+                    <input
+                      className="crm-form-input"
+                      type="text"
+                      placeholder="ॐ / 🏔️ / 🌸 / ✨"
+                      value={tourForm.icon}
+                      onChange={(e) => setTourForm({ ...tourForm, icon: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="crm-form-group">
+                  <label>Inclusions (comma separated)</label>
+                  <textarea
+                    className="crm-form-textarea"
+                    rows="2"
+                    placeholder="Hotel Stay, Satvik Meals, AC Cab, VIP Darshan Assist..."
+                    value={tourForm.inclusions}
+                    onChange={(e) => setTourForm({ ...tourForm, inclusions: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="crm-modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setShowTourModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Save Package
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: DELETE TOUR CONFIRMATION ================= */}
+      {confirmDeleteTourId && (
+        <div className="drawer-backdrop" onClick={() => setConfirmDeleteTourId(null)}>
+          <div className="crm-modal-box" style={{ maxWidth: "400px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="crm-modal-header">
+              <h3 style={{ color: "var(--crm-danger)" }}>Delete Package Confirmation</h3>
+              <button className="btn-icon-soft" onClick={() => setConfirmDeleteTourId(null)}>✕</button>
+            </div>
+            <div className="crm-modal-body">
+              <p style={{ margin: 0 }}>Kya aap sach mein is yatra package ko catalog se hatana chahte hain?</p>
+            </div>
+            <div className="crm-modal-footer">
+              <button className="btn-secondary" onClick={() => setConfirmDeleteTourId(null)}>Cancel</button>
+              <button
+                className="btn-primary"
+                style={{ background: "var(--crm-danger)" }}
+                onClick={handleConfirmDeleteTour}
+              >
+                Delete Package
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= SLIDE-OVER RIGHT DRAWER (INSPECTOR) ================= */}
       {inspectingLead && (
@@ -785,12 +1103,12 @@ export default function CrmDashboard({ onSwitchToChat }) {
       )}
 
       {/* ================= MODAL: MANUAL LEAD CREATION ================= */}
-      {showAddModal && (
-        <div className="drawer-backdrop" onClick={() => setShowAddModal(false)}>
+      {showAddLeadModal && (
+        <div className="drawer-backdrop" onClick={() => setShowAddLeadModal(false)}>
           <div className="crm-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="crm-modal-header">
               <h3>+ Nayi Lead Register Karein</h3>
-              <button className="btn-icon-soft" onClick={() => setShowAddModal(false)}>✕</button>
+              <button className="btn-icon-soft" onClick={() => setShowAddLeadModal(false)}>✕</button>
             </div>
             <form onSubmit={handleCreateLead}>
               <div className="crm-modal-body">
@@ -801,8 +1119,8 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     type="text"
                     required
                     placeholder="e.g. Ramesh Chandra"
-                    value={addForm.name}
-                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                    value={addLeadForm.name}
+                    onChange={(e) => setAddLeadForm({ ...addLeadForm, name: e.target.value })}
                   />
                 </div>
                 <div className="crm-form-group">
@@ -812,24 +1130,20 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     type="tel"
                     required
                     placeholder="e.g. 9876543210"
-                    value={addForm.phone}
-                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                    value={addLeadForm.phone}
+                    onChange={(e) => setAddLeadForm({ ...addLeadForm, phone: e.target.value })}
                   />
                 </div>
                 <div className="crm-form-group">
                   <label>Pavitra Dham (Destination)</label>
                   <select
                     className="crm-form-select"
-                    value={addForm.destination}
-                    onChange={(e) => setAddForm({ ...addForm, destination: e.target.value })}
+                    value={addLeadForm.destination}
+                    onChange={(e) => setAddLeadForm({ ...addLeadForm, destination: e.target.value })}
                   >
-                    <option value="Ayodhya">Ayodhya Shri Ram Mandir</option>
-                    <option value="Kedarnath">Kedarnath & Do Dham</option>
-                    <option value="Vaishno Devi">Mata Vaishno Devi</option>
-                    <option value="Char Dham">Uttarakhand Char Dham</option>
-                    <option value="Tirupati Balaji">Tirupati Balaji</option>
-                    <option value="Kashi Varanasi">Kashi Vishwanath</option>
-                    <option value="Mathura Vrindavan">Mathura Vrindavan</option>
+                    {packagesList.map((p) => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -840,8 +1154,8 @@ export default function CrmDashboard({ onSwitchToChat }) {
                       type="number"
                       min="1"
                       placeholder="e.g. 4"
-                      value={addForm.travellers}
-                      onChange={(e) => setAddForm({ ...addForm, travellers: e.target.value })}
+                      value={addLeadForm.travellers}
+                      onChange={(e) => setAddLeadForm({ ...addLeadForm, travellers: e.target.value })}
                     />
                   </div>
                   <div className="crm-form-group">
@@ -850,8 +1164,8 @@ export default function CrmDashboard({ onSwitchToChat }) {
                       className="crm-form-input"
                       type="text"
                       placeholder="e.g. 15 May ya June"
-                      value={addForm.preferred_date}
-                      onChange={(e) => setAddForm({ ...addForm, preferred_date: e.target.value })}
+                      value={addLeadForm.preferred_date}
+                      onChange={(e) => setAddLeadForm({ ...addLeadForm, preferred_date: e.target.value })}
                     />
                   </div>
                 </div>
@@ -861,13 +1175,13 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     className="crm-form-textarea"
                     rows="2"
                     placeholder="Special requirements (senior citizen, palki, budget)..."
-                    value={addForm.notes}
-                    onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
+                    value={addLeadForm.notes}
+                    onChange={(e) => setAddLeadForm({ ...addLeadForm, notes: e.target.value })}
                   />
                 </div>
               </div>
               <div className="crm-modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
+                <button type="button" className="btn-secondary" onClick={() => setShowAddLeadModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary">Save Lead</button>
               </div>
             </form>
@@ -912,7 +1226,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
         </div>
       )}
 
-      {/* ================= CONFIRM DELETE MODAL ================= */}
+      {/* ================= CONFIRM DELETE LEAD MODAL ================= */}
       {confirmDeleteId && (
         <div className="drawer-backdrop" onClick={() => setConfirmDeleteId(null)}>
           <div className="crm-modal-box" style={{ maxWidth: "400px" }} onClick={(e) => e.stopPropagation()}>
@@ -928,7 +1242,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
               <button
                 className="btn-primary"
                 style={{ background: "var(--crm-danger)" }}
-                onClick={handleConfirmDelete}
+                onClick={handleConfirmDeleteLead}
               >
                 Delete
               </button>

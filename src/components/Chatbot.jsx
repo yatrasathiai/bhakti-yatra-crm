@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { askYatraAi } from "../services/aiService";
 import { extractLeadFromChat } from "../services/leadExtractor";
 import { createLead } from "../services/databaseService";
+import { fetchPackages } from "../services/packageService";
 import "./Chatbot.css";
 
 const POPULAR_TOURS = [
@@ -180,7 +181,7 @@ export default function Chatbot({ onSelectPackage }) {
                 <FormattedText text={msg.text} />
                 {msg.showPackages && (
                   <div className="yatra-mini-packages">
-                    {POPULAR_TOURS.map((tour) => (
+                    {fetchPackages().map((tour) => (
                       <div key={tour.id} className="yatra-mini-card" onClick={() => selectTour(tour)}>
                         <div className="yatra-mini-top">
                           <span className="yatra-mini-icon">{tour.icon}</span>

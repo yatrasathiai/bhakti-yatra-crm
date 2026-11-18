@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { askYatraAi } from "../services/aiService";
+import { extractLeadFromChat } from "../services/leadExtractor";
+import { createLead } from "../services/databaseService";
 import "./Chatbot.css";
 
 const POPULAR_TOURS = [
@@ -10,8 +12,7 @@ const POPULAR_TOURS = [
 ];
 
 function formatTime() {
-  const d = new Date();
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function FormattedText({ text }) {
@@ -21,7 +22,6 @@ function FormattedText({ text }) {
     <div>
       {lines.map((line, idx) => {
         if (!line.trim()) return <div key={idx} style={{ height: "6px" }} />;
-        
         const parts = line.split(/(\*\*.*?\*\*)/g);
         const parsed = parts.map((part, pIdx) => {
           if (part.startsWith("**") && part.endsWith("**")) {
@@ -29,18 +29,13 @@ function FormattedText({ text }) {
           }
           return part;
         });
-
-        return (
-          <div key={idx} style={{ marginBottom: "3px" }}>
-            {parsed}
-          </div>
-        );
+        return <div key={idx} style={{ marginBottom: "3px" }}>{parsed}</div>;
       })}
     </div>
   );
 }
 
-export default function Chatbot({ onSelectPackage }) {
+export default function Chatbot({ onSelectPackage, onSwitchToCrm, leadCount }) {
   const [messages, setMessages] = useState([
     {
       type: "bot",
@@ -50,6 +45,7 @@ export default function Chatbot({ onSelectPackage }) {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [leadSaved, setLeadSaved] = useState(false);
   const [chips, setChips] = useState([
     "✨ Ayodhya Ram Mandir",
     "🏔️ Kedarnath Guide",
@@ -69,6 +65,24 @@ export default function Chatbot({ onSelectPackage }) {
     return msg;
   };
 
+  // Try to extract & save lead after every user message
+  const tryCaptureLead = async (allMessages) => {
+    if (leadSaved) return; // Don't duplicate
+
+    try {
+      const extracted = await extractLeadFromChat(allMessages);
+      if (extracted && (extracted.name || extracted.phone)) {
+        await createLead(extracted);
+        setLeadSaved(true);
+
+        // Notify in chat
+        addMessage("bot", `Dhanyavaad${extracted.name ? " " + extracted.name + " ji" : ""} 🙏\n\nAapki enquiry humari team ke paas pahunch gayi hai. Jald hi humara yatra coordinator aapse${extracted.phone ? " " + extracted.phone + " par" : ""} contact karega aur aapke liye best yatra plan taiyaar karega!\n\nHar Har Mahadev! 🙏`);
+      }
+    } catch (err) {
+      console.warn("Lead capture attempt:", err);
+    }
+  };
+
   const handleSend = async (messageText) => {
     const query = (messageText || input).trim();
     if (!query || loading) return;
@@ -79,7 +93,6 @@ export default function Chatbot({ onSelectPackage }) {
     setMessages(history);
     setLoading(true);
 
-    // If query asks for packages
     if (/package|packages|tour|rate/i.test(query) && !/details|timing|pass/i.test(query)) {
       setTimeout(() => {
         setLoading(false);
@@ -103,6 +116,9 @@ export default function Chatbot({ onSelectPackage }) {
       } else {
         setChips(["Popular Packages", "Kedarnath trip", "Ayodhya Dham", "Tirupati Balaji"]);
       }
+
+      // Try lead extraction in background
+      tryCaptureLead([...history, { type: "bot", text: response }]);
     } catch {
       addMessage("bot", "Kshama karein, network mein kuch samasya aayi. Kripya punah koshish karein.");
     } finally {
@@ -116,6 +132,7 @@ export default function Chatbot({ onSelectPackage }) {
   };
 
   const clearChat = () => {
+    setLeadSaved(false);
     setMessages([
       {
         type: "bot",
@@ -144,6 +161,11 @@ export default function Chatbot({ onSelectPackage }) {
         </div>
 
         <div className="yatra-chat-actions">
+          {onSwitchToCrm && (
+            <button className="yatra-key-pill" onClick={onSwitchToCrm} title="Open CRM Dashboard">
+              📊 CRM {typeof leadCount === "number" && leadCount > 0 ? `(${leadCount})` : ""}
+            </button>
+          )}
           <button className="yatra-btn-icon" onClick={clearChat} title="Clear Chat">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -152,13 +174,11 @@ export default function Chatbot({ onSelectPackage }) {
         </div>
       </div>
 
-      {/* CHAT LOG / BODY */}
+      {/* CHAT LOG */}
       <div className="yatra-chat-body" ref={bodyRef}>
         {messages.map((msg) => (
           <div key={msg.id || msg.time} className={`yatra-msg-row ${msg.type}`}>
-            <div className="yatra-msg-avatar">
-              {msg.type === "bot" ? "ॐ" : "👤"}
-            </div>
+            <div className="yatra-msg-avatar">{msg.type === "bot" ? "ॐ" : "👤"}</div>
             <div className="yatra-msg-content">
               <div className="yatra-bubble">
                 <FormattedText text={msg.text} />
@@ -186,56 +206,39 @@ export default function Chatbot({ onSelectPackage }) {
             </div>
           </div>
         ))}
-
         {loading && (
           <div className="yatra-msg-row bot">
             <div className="yatra-msg-avatar">ॐ</div>
             <div className="yatra-msg-content">
               <div className="yatra-typing-bubble">
-                <span className="yatra-dot" />
-                <span className="yatra-dot" />
-                <span className="yatra-dot" />
+                <span className="yatra-dot" /><span className="yatra-dot" /><span className="yatra-dot" />
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* QUICK SUGGESTION CHIPS */}
+      {/* CHIPS */}
       <div className="yatra-chips-container">
         {chips.map((chip, idx) => (
-          <button key={idx} className="yatra-chip" onClick={() => handleSend(chip)}>
-            {chip}
-          </button>
+          <button key={idx} className="yatra-chip" onClick={() => handleSend(chip)}>{chip}</button>
         ))}
       </div>
 
-      {/* COMPOSER / INPUT */}
+      {/* COMPOSER */}
       <div className="yatra-chat-footer">
-        <form
-          className="yatra-input-wrapper"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-        >
+        <form className="yatra-input-wrapper" onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
           <input
             className="yatra-input-field"
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Apna sawaal poochiye (jaise Kedarnath yatra registration, Ayodhya aarti)..."
+            placeholder="Apna sawaal poochiye (jaise Kedarnath yatra, Ayodhya aarti)..."
             aria-label="Ask Yatra Saathi"
           />
-          <button
-            type="submit"
-            className="yatra-send-btn"
-            disabled={!input.trim() || loading}
-            aria-label="Send message"
-          >
+          <button type="submit" className="yatra-send-btn" disabled={!input.trim() || loading} aria-label="Send message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m22 2-7 20-4-9-9-4Z" />
-              <path d="M22 2 11 13" />
+              <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
             </svg>
           </button>
         </form>

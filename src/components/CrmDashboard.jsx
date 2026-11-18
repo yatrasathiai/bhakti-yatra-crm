@@ -98,6 +98,9 @@ export default function CrmDashboard({ onSwitchToChat }) {
           <button className="crm-btn" onClick={loadData} title="Refresh">
             🔄 Refresh
           </button>
+          <button className="crm-btn" onClick={() => { sessionStorage.removeItem("yatra_crm_auth"); onSwitchToChat(); }} title="Logout">
+            🔒 Logout
+          </button>
           <button className="crm-btn primary" onClick={onSwitchToChat}>
             💬 Chatbot View
           </button>

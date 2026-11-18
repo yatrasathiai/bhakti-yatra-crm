@@ -35,7 +35,7 @@ function FormattedText({ text }) {
   );
 }
 
-export default function Chatbot({ onSelectPackage, onSwitchToCrm, leadCount }) {
+export default function Chatbot({ onSelectPackage }) {
   const [messages, setMessages] = useState([
     {
       type: "bot",
@@ -67,7 +67,7 @@ export default function Chatbot({ onSelectPackage, onSwitchToCrm, leadCount }) {
 
   // Try to extract & save lead after every user message
   const tryCaptureLead = async (allMessages) => {
-    if (leadSaved) return; // Don't duplicate
+    if (leadSaved) return;
 
     try {
       const extracted = await extractLeadFromChat(allMessages);
@@ -75,8 +75,10 @@ export default function Chatbot({ onSelectPackage, onSwitchToCrm, leadCount }) {
         await createLead(extracted);
         setLeadSaved(true);
 
-        // Notify in chat
-        addMessage("bot", `Dhanyavaad${extracted.name ? " " + extracted.name + " ji" : ""} 🙏\n\nAapki enquiry humari team ke paas pahunch gayi hai. Jald hi humara yatra coordinator aapse${extracted.phone ? " " + extracted.phone + " par" : ""} contact karega aur aapke liye best yatra plan taiyaar karega!\n\nHar Har Mahadev! 🙏`);
+        addMessage(
+          "bot",
+          `Dhanyavaad${extracted.name ? " " + extracted.name + " ji" : ""} 🙏\n\nAapki enquiry humari team ke paas pahunch gayi hai. Jald hi humara yatra coordinator aapse${extracted.phone ? " " + extracted.phone + " par" : ""} contact karega aur aapke liye best yatra plan taiyaar karega!\n\nHar Har Mahadev! 🙏`
+        );
       }
     } catch (err) {
       console.warn("Lead capture attempt:", err);
@@ -117,7 +119,6 @@ export default function Chatbot({ onSelectPackage, onSwitchToCrm, leadCount }) {
         setChips(["Popular Packages", "Kedarnath trip", "Ayodhya Dham", "Tirupati Balaji"]);
       }
 
-      // Try lead extraction in background
       tryCaptureLead([...history, { type: "bot", text: response }]);
     } catch {
       addMessage("bot", "Kshama karein, network mein kuch samasya aayi. Kripya punah koshish karein.");
@@ -144,7 +145,7 @@ export default function Chatbot({ onSelectPackage, onSwitchToCrm, leadCount }) {
 
   return (
     <div className="yatra-chat-card">
-      {/* HEADER */}
+      {/* HEADER — 100% PURE PUBLIC INTERFACE */}
       <div className="yatra-chat-header">
         <div className="yatra-chat-brand">
           <div className="yatra-chat-avatar">
@@ -161,11 +162,6 @@ export default function Chatbot({ onSelectPackage, onSwitchToCrm, leadCount }) {
         </div>
 
         <div className="yatra-chat-actions">
-          {onSwitchToCrm && (
-            <button className="yatra-key-pill" onClick={onSwitchToCrm} title="Open CRM Dashboard">
-              📊 CRM {typeof leadCount === "number" && leadCount > 0 ? `(${leadCount})` : ""}
-            </button>
-          )}
           <button className="yatra-btn-icon" onClick={clearChat} title="Clear Chat">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>

@@ -5,11 +5,34 @@ import {
   updateLead,
   deleteLead,
   getLeadStats,
+  getStorageInfo,
 } from "../services/databaseService";
 import { fetchPackages, savePackage, deletePackage } from "../services/packageService";
 import SettingsTab from "./SettingsTab";
 import "./CrmDashboard.css";
 import "./ToursCatalog.css";
+
+const DHAM_ICONS = {
+  ayodhya: "ॐ",
+  kedarnath: "🏔️",
+  badrinath: "⛰️",
+  vaishno: "🌸",
+  chardham: "✨",
+  tirupati: "🚩",
+  kashi: "🔱",
+  varanasi: "🔱",
+  vrindavan: "🦚",
+  mathura: "🦚",
+};
+
+function getDhamIcon(dest) {
+  if (!dest) return "🛕";
+  const low = dest.toLowerCase();
+  for (const [k, v] of Object.entries(DHAM_ICONS)) {
+    if (low.includes(k)) return v;
+  }
+  return "🛕";
+}
 
 const STATUS_CONFIG = {
   new: { label: "New Lead", pillClass: "new", dotColor: "#F59E0B" },
@@ -469,47 +492,146 @@ export default function CrmDashboard({ onSwitchToChat }) {
 
         {/* SCROLLABLE VIEW BODY */}
         <main className="crm-view-body">
-          {/* TAB 1: OVERVIEW */}
+          {/* TAB 1: INTERACTIVE EXECUTIVE OVERVIEW */}
           {activeTab === "overview" && (
-            <>
+            <div className="overview-container">
+              {/* Top Cloud & Realtime Status Ribbon */}
+              <div className="overview-sync-ribbon">
+                <div className="sync-ribbon-left">
+                  {getStorageInfo().isCloud ? (
+                    <span className="sync-badge cloud" title="Connected to Supabase PostgreSQL">
+                      <span className="sync-dot live" /> 🟢 Supabase Cloud DB Active
+                    </span>
+                  ) : (
+                    <span
+                      className="sync-badge local interactive-badge"
+                      onClick={() => setActiveTab("settings")}
+                      title="Click to configure Supabase Cloud in Settings"
+                    >
+                      <span className="sync-dot pulse" /> 🟡 Local Storage Mode · <u>Connect Supabase Cloud ➔</u>
+                    </span>
+                  )}
+                  <span className="sync-time-label">
+                    Total Devotees Cached: <strong>{leads.length}</strong> · Active Tours: <strong>{packagesList.length}</strong>
+                  </span>
+                </div>
+                <div className="sync-ribbon-right">
+                  <button
+                    className="btn-sync-refresh"
+                    onClick={() => {
+                      loadData();
+                      showToast("🔄 Data refreshed!");
+                    }}
+                    title="Refresh data from database"
+                  >
+                    🔄 Refresh
+                  </button>
+                </div>
+              </div>
+
+              {/* 5 Interactive Metrics Cards */}
               <div className="crm-metrics-grid">
-                <div className="metric-card total">
+                {/* 1. Total Enquiries */}
+                <div
+                  className="metric-card total interactive"
+                  onClick={() => {
+                    setFilterStatus("all");
+                    setFilterDest("all");
+                    setSearch("");
+                    setActiveTab("leads");
+                  }}
+                  title="Click to view all leads"
+                >
                   <div className="metric-card-header">
                     <span className="metric-title">Total Enquiries</span>
                     <div className="metric-icon-wrap">👥</div>
                   </div>
                   <span className="metric-value">{stats.total || 0}</span>
                   <span className="metric-footer">Lifetime captured leads</span>
+                  <div className="metric-card-action-hint">
+                    <span>Sabhi Leads Dekhein</span>
+                    <span>➔</span>
+                  </div>
                 </div>
 
-                <div className="metric-card new">
+                {/* 2. New Enquiries */}
+                <div
+                  className="metric-card new interactive"
+                  onClick={() => {
+                    setFilterStatus("new");
+                    setFilterDest("all");
+                    setActiveTab("leads");
+                  }}
+                  title="Click to filter new devotee leads"
+                >
                   <div className="metric-card-header">
                     <span className="metric-title">New Enquiries</span>
                     <div className="metric-icon-wrap">🟡</div>
                   </div>
                   <span className="metric-value">{stats.new || 0}</span>
                   <span className="metric-footer">Requires initial call/WhatsApp</span>
+                  <div className="metric-card-action-hint">
+                    <span>Filter New Leads</span>
+                    <span>➔</span>
+                  </div>
                 </div>
 
-                <div className="metric-card contacted">
+                {/* 3. In Discussion */}
+                <div
+                  className="metric-card contacted interactive"
+                  onClick={() => {
+                    setFilterStatus("contacted");
+                    setFilterDest("all");
+                    setActiveTab("leads");
+                  }}
+                  title="Click to filter devotees in discussion"
+                >
                   <div className="metric-card-header">
                     <span className="metric-title">In Discussion</span>
                     <div className="metric-icon-wrap">🔵</div>
                   </div>
                   <span className="metric-value">{stats.contacted || 0}</span>
-                  <span className="metric-footer">Itinerary shared</span>
+                  <span className="metric-footer">Itinerary & rates shared</span>
+                  <div className="metric-card-action-hint">
+                    <span>Filter Contacted</span>
+                    <span>➔</span>
+                  </div>
                 </div>
 
-                <div className="metric-card booked">
+                {/* 4. Confirmed Bookings */}
+                <div
+                  className="metric-card booked interactive"
+                  onClick={() => {
+                    setFilterStatus("booked");
+                    setFilterDest("all");
+                    setActiveTab("leads");
+                  }}
+                  title="Click to filter confirmed yatras"
+                >
                   <div className="metric-card-header">
                     <span className="metric-title">Confirmed Yatras</span>
                     <div className="metric-icon-wrap">🟢</div>
                   </div>
                   <span className="metric-value">{stats.booked || 0}</span>
                   <span className="metric-footer">Advance confirmed</span>
+                  <div className="metric-card-action-hint">
+                    <span>Filter Booked</span>
+                    <span>➔</span>
+                  </div>
                 </div>
 
-                <div className="metric-card top">
+                {/* 5. Most Demanded */}
+                <div
+                  className="metric-card top interactive"
+                  onClick={() => {
+                    if (stats.topDestination && stats.topDestination !== "—") {
+                      setFilterDest(stats.topDestination.toLowerCase());
+                      setFilterStatus("all");
+                      setActiveTab("leads");
+                    }
+                  }}
+                  title="Click to filter leads for top destination"
+                >
                   <div className="metric-card-header">
                     <span className="metric-title">Most Demanded</span>
                     <div className="metric-icon-wrap">🔥</div>
@@ -518,10 +640,207 @@ export default function CrmDashboard({ onSwitchToChat }) {
                   <span className="metric-footer">
                     {stats.topDestCount ? `${stats.topDestCount} devotee enquiries` : "Tracking active"}
                   </span>
+                  <div className="metric-card-action-hint">
+                    <span>Filter Dham Leads</span>
+                    <span>➔</span>
+                  </div>
                 </div>
               </div>
 
-              {/* RECENT LEADS QUICK TABLE */}
+              {/* Quick Actions Hub Grid */}
+              <div className="overview-quick-actions-grid">
+                <div className="quick-action-card" onClick={() => setShowAddLeadModal(true)}>
+                  <div className="quick-action-icon">➕</div>
+                  <div className="quick-action-content">
+                    <strong>Nayi Devotee Enquiry Darj Karein</strong>
+                    <span>Manually yatri details, destination aur phone save karein</span>
+                  </div>
+                  <span className="quick-action-arrow">➔</span>
+                </div>
+
+                <div className="quick-action-card" onClick={() => setActiveTab("pipeline")}>
+                  <div className="quick-action-icon">📌</div>
+                  <div className="quick-action-content">
+                    <strong>Pipeline Kanban Board</strong>
+                    <span>Stages view: New, Contacted, Booked, Cancelled</span>
+                  </div>
+                  <span className="quick-action-arrow">➔</span>
+                </div>
+
+                <div className="quick-action-card" onClick={() => setActiveTab("tours")}>
+                  <div className="quick-action-icon">📦</div>
+                  <div className="quick-action-content">
+                    <strong>Pavitra Packages Catalog ({packagesList.length})</strong>
+                    <span>Rates, stay inclusions aur itineraries manage karein</span>
+                  </div>
+                  <span className="quick-action-arrow">➔</span>
+                </div>
+
+                <div
+                  className="quick-action-card"
+                  onClick={() => {
+                    const ok = downloadLeadsCsv(leads);
+                    if (ok) showToast("📥 Leads CSV download ho gaya!");
+                  }}
+                >
+                  <div className="quick-action-icon">📥</div>
+                  <div className="quick-action-content">
+                    <strong>Export Devotees Sheet</strong>
+                    <span>Complete enquiries CSV Excel ke liye download karein</span>
+                  </div>
+                  <span className="quick-action-arrow">➔</span>
+                </div>
+              </div>
+
+              {/* Dual Column Analytics: Dham Demands & Conversion Funnel */}
+              <div className="overview-dual-grid">
+                {/* Column 1: Pilgrimage Destinations Distribution */}
+                <div className="overview-card-block">
+                  <div className="overview-card-block-header">
+                    <div>
+                      <h4>🛕 Pavitra Dham Demands (Click to Filter)</h4>
+                      <p>Devotees ki pasand ke hisab se top pilgrimage destinations</p>
+                    </div>
+                    <button
+                      className="btn-link-action"
+                      onClick={() => {
+                        setFilterDest("all");
+                        setActiveTab("leads");
+                      }}
+                    >
+                      Sabhi ({uniqueDestinations.length}) ➔
+                    </button>
+                  </div>
+
+                  <div className="destinations-pills-list">
+                    {uniqueDestinations.length === 0 ? (
+                      <p style={{ color: "var(--crm-text-muted)", fontSize: "0.85rem" }}>
+                        Abhi koi destination record nahi hai.
+                      </p>
+                    ) : (
+                      uniqueDestinations.map((d) => {
+                        const count = leads.filter(
+                          (l) => (l.destination || "").toLowerCase() === d.toLowerCase()
+                        ).length;
+                        const percent = Math.round((count / (leads.length || 1)) * 100);
+                        return (
+                          <div
+                            key={d}
+                            className="destination-interactive-pill"
+                            onClick={() => {
+                              setFilterDest(d);
+                              setFilterStatus("all");
+                              setActiveTab("leads");
+                            }}
+                            title={`Filter ${d.toUpperCase()} enquiries`}
+                          >
+                            <div className="dest-pill-left">
+                              <span className="dest-symbol">{getDhamIcon(d)}</span>
+                              <strong className="dest-name">{d.toUpperCase()}</strong>
+                            </div>
+                            <div className="dest-pill-right">
+                              <span className="dest-count-tag">{count} enquiries</span>
+                              <span className="dest-pct">{percent}%</span>
+                              <span className="dest-arrow">➔</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Column 2: Lead Conversion Funnel */}
+                <div className="overview-card-block">
+                  <div className="overview-card-block-header">
+                    <div>
+                      <h4>📊 Lead Conversion Funnel</h4>
+                      <p>Enquiry se lekar confirmed booking tak ka safar</p>
+                    </div>
+                    <button className="btn-link-action" onClick={() => setActiveTab("pipeline")}>
+                      Kanban Dekhein ➔
+                    </button>
+                  </div>
+
+                  <div className="funnel-stages-container">
+                    {/* Stage 1: Captured */}
+                    <div
+                      className="funnel-stage-item interactive"
+                      onClick={() => {
+                        setFilterStatus("all");
+                        setActiveTab("leads");
+                      }}
+                      title="Click to view all captured leads"
+                    >
+                      <div className="funnel-stage-header">
+                        <span>1. Total Captured Devotees</span>
+                        <strong>{stats.total || 0} (100%)</strong>
+                      </div>
+                      <div className="funnel-progress-track">
+                        <div className="funnel-progress-fill stage-1" style={{ width: "100%" }} />
+                      </div>
+                    </div>
+
+                    {/* Stage 2: Contacted */}
+                    <div
+                      className="funnel-stage-item interactive"
+                      onClick={() => {
+                        setFilterStatus("contacted");
+                        setActiveTab("leads");
+                      }}
+                      title="Click to filter contacted devotees"
+                    >
+                      <div className="funnel-stage-header">
+                        <span>2. Devotees In Discussion</span>
+                        <strong>
+                          {stats.contacted || 0} (
+                          {stats.total ? Math.round((stats.contacted / stats.total) * 100) : 0}%)
+                        </strong>
+                      </div>
+                      <div className="funnel-progress-track">
+                        <div
+                          className="funnel-progress-fill stage-2"
+                          style={{
+                            width: `${
+                              stats.total ? Math.round((stats.contacted / stats.total) * 100) : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Stage 3: Booked */}
+                    <div
+                      className="funnel-stage-item interactive"
+                      onClick={() => {
+                        setFilterStatus("booked");
+                        setActiveTab("leads");
+                      }}
+                      title="Click to filter confirmed bookings"
+                    >
+                      <div className="funnel-stage-header">
+                        <span>3. Confirmed Bookings</span>
+                        <strong>
+                          {stats.booked || 0} (
+                          {stats.total ? Math.round((stats.booked / stats.total) * 100) : 0}%)
+                        </strong>
+                      </div>
+                      <div className="funnel-progress-track">
+                        <div
+                          className="funnel-progress-fill stage-3"
+                          style={{
+                            width: `${
+                              stats.total ? Math.round((stats.booked / stats.total) * 100) : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* RECENT LEADS QUICK TABLE (Now Clickable Row) */}
               <div className="crm-table-card">
                 <div
                   style={{
@@ -530,12 +849,24 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    background: "#FAF8F6",
                   }}
                 >
-                  <strong style={{ fontSize: "0.95rem" }}>Taza Enquiries (Recent Leads)</strong>
+                  <div>
+                    <strong style={{ fontSize: "0.96rem" }}>Taza Enquiries (Recent Leads)</strong>
+                    <p
+                      style={{
+                        margin: "2px 0 0 0",
+                        fontSize: "0.78rem",
+                        color: "var(--crm-text-muted)",
+                      }}
+                    >
+                      Kisi bhi row par click karke details aur remarks update karein
+                    </p>
+                  </div>
                   <button
                     className="btn-secondary"
-                    style={{ padding: "5px 12px", fontSize: "0.78rem" }}
+                    style={{ padding: "6px 14px", fontSize: "0.8rem" }}
                     onClick={() => setActiveTab("leads")}
                   >
                     Sabhi Leads Dekhein ➔
@@ -553,18 +884,32 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {leads.slice(0, 5).map((l) => (
-                      <tr key={l.id}>
-                        <td><strong>{l.name || "Devotee"}</strong></td>
-                        <td><span className="phone-tag">{l.phone || "—"}</span></td>
-                        <td><span className="dest-pill">{l.destination || "Yatra"}</span></td>
+                    {leads.slice(0, 6).map((l) => (
+                      <tr
+                        key={l.id}
+                        className="clickable-row"
+                        onClick={() => setInspectingLead(l)}
+                        title="Click to open devotee inspector"
+                      >
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "16px" }}>{getDhamIcon(l.destination)}</span>
+                            <strong>{l.name || "Devotee"}</strong>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="phone-tag">{l.phone || "—"}</span>
+                        </td>
+                        <td>
+                          <span className="dest-pill">{l.destination || "Yatra"}</span>
+                        </td>
                         <td>{l.travellers || "—"}</td>
                         <td>
                           <span className={`status-pill ${l.status || "new"}`}>
                             {STATUS_CONFIG[l.status || "new"]?.label}
                           </span>
                         </td>
-                        <td>
+                        <td onClick={(e) => e.stopPropagation()}>
                           <button className="btn-whatsapp" onClick={() => setShowWaModal(l)}>
                             📱 WhatsApp
                           </button>
@@ -574,7 +919,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
                   </tbody>
                 </table>
               </div>
-            </>
+            </div>
           )}
 
           {/* TAB 2: ALL LEADS TABLE */}

@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { reseedLocalLeads, clearAllLocalLeads } from "../services/databaseService";
+import {
+  reseedLocalLeads,
+  clearAllLocalLeads,
+  testSupabaseConnection,
+  syncLocalLeadsToSupabase,
+} from "../services/databaseService";
 import { resetPackages } from "../services/packageService";
 import "./SettingsTab.css";
 
@@ -124,12 +129,30 @@ export default function SettingsTab({
   // Handler: Test DB Connection
   const handleTestDb = async () => {
     setDbTesting(true);
-    await new Promise((res) => setTimeout(res, 800));
+    const result = await testSupabaseConnection(supabaseUrl, supabaseKey);
     setDbTesting(false);
-    if (supabaseUrl && supabaseKey) {
-      showToast("🟢 Cloud parameters configured! Supabase client active.");
+    if (result.success) {
+      if (result.tableMissing) {
+        setShowSqlGuide(true);
+        showToast("⚠️ Connected! Lekin 'leads' table banani padegi.");
+      } else {
+        showToast("🟢 " + result.message);
+      }
     } else {
-      showToast("🟡 Local browser storage active & working smoothly.");
+      showToast("❌ " + result.message);
+    }
+  };
+
+  // Handler: Sync Local Leads to Supabase
+  const handleSyncToCloud = async () => {
+    setDbTesting(true);
+    const res = await syncLocalLeadsToSupabase();
+    setDbTesting(false);
+    if (res.success) {
+      showToast(`☁️ ${res.count} leads Supabase Cloud par sync ho gaye!`);
+      if (onReloadData) onReloadData();
+    } else {
+      showToast("❌ Sync fail: " + res.message);
     }
   };
 
@@ -562,6 +585,17 @@ export default function SettingsTab({
                   >
                     {dbTesting ? "Testing..." : "⚡ Test Connection"}
                   </button>
+                  {supabaseUrl && (
+                    <button
+                      type="button"
+                      className="btn-pro-outline"
+                      onClick={handleSyncToCloud}
+                      disabled={dbTesting}
+                      title="Sync all current leads to Supabase"
+                    >
+                      ☁️ Sync Leads to Cloud
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn-pro-outline"

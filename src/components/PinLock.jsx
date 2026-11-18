@@ -1,7 +1,9 @@
 import { useState, useRef } from "react";
 import "./PinLock.css";
 
-const ADMIN_PIN = "1234";
+function getAdminPin() {
+  return localStorage.getItem("yatra_admin_pin") || "1234";
+}
 
 export default function PinLock({ onUnlock, onCancel }) {
   const [digits, setDigits] = useState(["", "", "", ""]);
@@ -24,7 +26,8 @@ export default function PinLock({ onUnlock, onCancel }) {
     // If all 4 digits are filled, auto-submit
     if (num && index === 3 && newDigits.every((d) => d !== "")) {
       const fullPin = newDigits.join("");
-      if (fullPin === ADMIN_PIN) {
+      const validPin = getAdminPin();
+      if (fullPin === validPin) {
         sessionStorage.setItem("yatra_crm_auth", "true");
         onUnlock();
       } else {
@@ -44,7 +47,8 @@ export default function PinLock({ onUnlock, onCancel }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const fullPin = digits.join("");
-    if (fullPin === ADMIN_PIN) {
+    const validPin = getAdminPin();
+    if (fullPin === validPin) {
       sessionStorage.setItem("yatra_crm_auth", "true");
       onUnlock();
     } else {

@@ -69,6 +69,16 @@ function saveLocalLeads(leads) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(leads));
 }
 
+export function reseedLocalLeads() {
+  saveLocalLeads(SEED_LEADS);
+  return SEED_LEADS;
+}
+
+export function clearAllLocalLeads() {
+  saveLocalLeads([]);
+  return [];
+}
+
 /**
  * Create a new lead
  */

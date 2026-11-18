@@ -36,11 +36,22 @@ function FormattedText({ text }) {
   );
 }
 
+function getInitialGreeting() {
+  try {
+    const raw = localStorage.getItem("yatra_bot_settings");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.welcomeMsg) return parsed.welcomeMsg;
+    }
+  } catch {}
+  return "Namaste! 🙏 Main 'Yatra Saathi' hoon — aapka Devotional Travel Guide.\n\nBharat ke kisi bhi teerth sthal (Ayodhya, Kedarnath, Vaishno Devi, Tirupati, Kashi, Vrindavan) ke darshan timings, packages, routes aur budget ke baare mein kuch bhi poochiye!";
+}
+
 export default function Chatbot({ onSelectPackage }) {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState(() => [
     {
       type: "bot",
-      text: "Namaste! 🙏 Main 'Yatra Saathi' hoon — aapka Devotional Travel Guide.\n\nBharat ke kisi bhi teerth sthal (Ayodhya, Kedarnath, Vaishno Devi, Tirupati, Kashi, Vrindavan) ke darshan timings, packages, routes aur budget ke baare mein kuch bhi poochiye!",
+      text: getInitialGreeting(),
       time: formatTime(),
     },
   ]);

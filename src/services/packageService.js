@@ -117,3 +117,9 @@ export function deletePackage(id) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
   return filtered;
 }
+
+export function resetPackages() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PACKAGES));
+  return INITIAL_PACKAGES;
+}
+

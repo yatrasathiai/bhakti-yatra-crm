@@ -6,11 +6,8 @@ import {
   deleteLead,
   getLeadStats,
 } from "../services/databaseService";
-import {
-  fetchPackages,
-  savePackage,
-  deletePackage,
-} from "../services/packageService";
+import { fetchPackages, savePackage, deletePackage } from "../services/packageService";
+import SettingsTab from "./SettingsTab";
 import "./CrmDashboard.css";
 import "./ToursCatalog.css";
 
@@ -109,9 +106,6 @@ export default function CrmDashboard({ onSwitchToChat }) {
     icon: "ॐ",
     inclusions: "Hotel Stay, Satvik Meals, AC Cab, VIP Darshan Assist",
   });
-
-  // Settings
-  const [newPin, setNewPin] = useState("");
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -826,61 +820,18 @@ export default function CrmDashboard({ onSwitchToChat }) {
             </div>
           )}
 
-          {/* TAB 5: SETTINGS */}
+          {/* TAB 5: REDESIGNED ENTERPRISE SETTINGS */}
           {activeTab === "settings" && (
-            <div className="settings-container">
-              <div className="settings-card">
-                <h3>🔒 Admin Security PIN</h3>
-                <p>CRM Dashboard unlock karne ke liye 4-digit PIN yahan badal sakte hain:</p>
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                  <input
-                    type="password"
-                    maxLength={4}
-                    placeholder="Enter new 4-digit PIN"
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
-                    style={{
-                      padding: "10px 14px",
-                      border: "1px solid var(--crm-border)",
-                      borderRadius: "8px",
-                      width: "220px",
-                      fontSize: "1.1rem",
-                    }}
-                  />
-                  <button
-                    className="btn-primary"
-                    onClick={() => {
-                      if (newPin.length !== 4) return showToast("⚠️ PIN 4 digits ka hona chahiye!");
-                      setNewPin("");
-                      showToast("✅ Admin PIN successfully updated!");
-                    }}
-                  >
-                    Update PIN
-                  </button>
-                </div>
-              </div>
-
-              <div className="settings-card">
-                <h3>💾 Database & Cloud Sync Status</h3>
-                <p>Yatra Saathi CRM data storage configuration:</p>
-                <div
-                  style={{
-                    background: "#FAF8F6",
-                    padding: "14px",
-                    borderRadius: "8px",
-                    fontSize: "0.85rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  <div><strong>Storage Engine:</strong> Local Browser Storage (Active & Resilient)</div>
-                  <div><strong>Supabase Cloud:</strong> Configurable via <code>.env</code> (VITE_SUPABASE_URL)</div>
-                  <div><strong>Total Cached Records:</strong> {leads.length} devotee leads</div>
-                  <div><strong>Active Yatra Packages:</strong> {packagesList.length} packages</div>
-                </div>
-              </div>
-            </div>
+            <SettingsTab
+              leads={leads}
+              packagesList={packagesList}
+              onReloadData={loadData}
+              showToast={showToast}
+              onLockDashboard={() => {
+                sessionStorage.removeItem("yatra_crm_auth");
+                if (onSwitchToChat) onSwitchToChat();
+              }}
+            />
           )}
         </main>
       </div>

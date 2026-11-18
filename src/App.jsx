@@ -1,70 +1,12 @@
 import { useEffect, useState } from "react";
 import Chatbot from "./components/Chatbot";
 import CrmDashboard from "./components/CrmDashboard";
-
-const ADMIN_PIN = "1234";
+import PinLock from "./components/PinLock";
 
 function checkIsAdmin() {
   const path = window.location.pathname.toLowerCase();
   const hash = window.location.hash.toLowerCase();
   return path === "/admin" || path.startsWith("/admin/") || hash === "#admin";
-}
-
-function PinLock({ onUnlock, onCancel }) {
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (pin === ADMIN_PIN) {
-      sessionStorage.setItem("yatra_crm_auth", "true");
-      onUnlock();
-    } else {
-      setError("Galat PIN! Kripya sahi PIN daalein.");
-      setPin("");
-    }
-  };
-
-  return (
-    <div className="pin-overlay">
-      <form className="pin-box" onSubmit={handleSubmit}>
-        <div className="pin-logo">ॐ</div>
-        <h3>Yatra Saathi Admin CRM</h3>
-        <p>Admin panel mein pravesh ke liye PIN daalein</p>
-        <input
-          className="pin-input"
-          type="password"
-          maxLength={4}
-          value={pin}
-          onChange={(e) => {
-            setPin(e.target.value.replace(/\D/g, ""));
-            setError("");
-          }}
-          placeholder="• • • •"
-          autoFocus
-        />
-        {error && <div className="pin-error">{error}</div>}
-        <button type="submit" className="pin-submit">
-          Unlock Dashboard 🔓
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{
-            marginTop: "12px",
-            background: "none",
-            border: "none",
-            color: "#7E726A",
-            fontSize: "0.85rem",
-            cursor: "pointer",
-            fontWeight: 500,
-          }}
-        >
-          ← Wapas Website Par Jayein
-        </button>
-      </form>
-    </div>
-  );
 }
 
 export default function App() {
@@ -73,7 +15,7 @@ export default function App() {
     () => sessionStorage.getItem("yatra_crm_auth") === "true"
   );
 
-  // Sync with browser URL changes
+  // Sync with browser URL changes (pathname or hash)
   useEffect(() => {
     const handleLocationChange = () => {
       setRoute(checkIsAdmin() ? "admin" : "home");
@@ -92,7 +34,7 @@ export default function App() {
     setRoute("home");
   };
 
-  // If URL is /admin or #admin
+  // If user navigates to /admin
   if (route === "admin") {
     if (!isAuth) {
       return (

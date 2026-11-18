@@ -1,6 +1,5 @@
 /* ===================================================
-   PIN LOCK SCREEN STYLES
-   Centered, Glassmorphic, Modern SaaS Login
+   PIN LOCK SCREEN — PIXEL-PERFECT ALIGNMENT
 =================================================== */
 
 .pin-screen-wrapper {
@@ -11,90 +10,98 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 30%, #FFFDF9 0%, #F5ECE0 100%);
-  padding: 20px;
+  background: radial-gradient(circle at 50% 20%, #FFFDF9 0%, #F3EDE4 100%);
+  padding: 24px;
   box-sizing: border-box;
   z-index: 9999;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .pin-card-box {
   background: #FFFFFF;
-  border: 1px solid #EADBCE;
-  border-radius: 24px;
-  padding: 44px 38px;
-  box-shadow: 0 24px 60px rgba(60, 30, 10, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04);
-  max-width: 400px;
+  border: 1px solid #E6DED5;
+  border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: 0 20px 50px -10px rgba(50, 30, 10, 0.12), 0 2px 10px rgba(0, 0, 0, 0.03);
+  max-width: 420px;
   width: 100%;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: scalePinCard 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
 }
 
-@keyframes scalePinCard {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
-}
-
 .pin-brand-icon {
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
   background: linear-gradient(135deg, #FF7A00 0%, #E8590C 100%);
   color: #FFFFFF;
-  border-radius: 18px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 800;
-  box-shadow: 0 8px 24px rgba(232, 89, 12, 0.35);
-  margin-bottom: 20px;
+  box-shadow: 0 6px 18px rgba(232, 89, 12, 0.3);
+  margin-bottom: 18px;
 }
 
 .pin-card-box h2 {
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   font-weight: 800;
-  color: #1E1B18;
+  color: #1A1614;
   margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
 }
 
 .pin-card-box p {
-  font-size: 0.86rem;
-  color: #7A6F68;
-  margin: 0 0 26px 0;
-  line-height: 1.4;
+  font-size: 0.85rem;
+  color: #786E67;
+  margin: 0 0 24px 0;
+  line-height: 1.45;
 }
 
 .pin-form {
   width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 16px;
 }
 
-.pin-digit-input {
-  width: 100%;
-  padding: 16px;
-  text-align: center;
-  font-size: 2rem;
-  letter-spacing: 16px;
-  border: 2px solid #EADFD5;
-  border-radius: 16px;
-  outline: none;
-  background: #FAF8F5;
-  color: #1E1B18;
-  font-weight: 700;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
+/* 4-Box Discrete PIN inputs */
+.pin-boxes-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 6px;
 }
 
-.pin-digit-input:focus {
+.pin-box-input {
+  width: 52px;
+  height: 58px;
+  border: 2px solid #E2D7CC;
+  border-radius: 12px;
+  background: #FAF7F4;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1A1614;
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.pin-box-input:focus {
   border-color: #E8590C;
   background: #FFFFFF;
-  box-shadow: 0 0 0 4px rgba(232, 89, 12, 0.15);
+  box-shadow: 0 0 0 4px rgba(232, 89, 12, 0.12);
+}
+
+.pin-box-input.has-value {
+  border-color: #C25E2E;
+  background: #FFFBF7;
 }
 
 .pin-error-badge {
@@ -102,47 +109,45 @@
   color: #DC2626;
   border: 1px solid #FECACA;
   padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 0.84rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
   font-weight: 600;
-  animation: shake 0.3s ease;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pin-unlock-btn {
   width: 100%;
-  padding: 14px;
+  height: 46px;
   background: linear-gradient(135deg, #FF7A00 0%, #E8590C 100%);
   color: #FFFFFF;
   border: none;
-  border-radius: 999px;
-  font-size: 1rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(232, 89, 12, 0.3);
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(232, 89, 12, 0.3);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .pin-unlock-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 22px rgba(232, 89, 12, 0.42);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(232, 89, 12, 0.4);
 }
 
 .pin-back-link {
   background: none;
   border: none;
-  color: #8E837B;
-  font-size: 0.86rem;
+  color: #8C8078;
+  font-size: 0.85rem;
   cursor: pointer;
   font-weight: 600;
   transition: color 0.15s;
-  padding: 6px;
-  margin-top: 4px;
+  padding: 4px;
 }
 
 .pin-back-link:hover {
@@ -152,8 +157,11 @@
 .pin-hint-tag {
   margin-top: 14px;
   font-size: 0.74rem;
-  color: #A3978F;
-  background: #F4EFEB;
-  padding: 4px 10px;
+  color: #9E928A;
+  background: #F5EFE9;
+  padding: 5px 12px;
   border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }

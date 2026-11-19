@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   reseedLocalLeads,
   clearAllLocalLeads,
@@ -85,15 +85,15 @@ export default function SettingsTab({
   const handleUpdatePin = (e) => {
     e.preventDefault();
     if (currentPin !== activeSavedPin) {
-      showToast("❌ Current PIN galat hai! Kripya sahi PIN daalein.");
+      showToast("❌ Incorrect current PIN! Please enter the valid security PIN.");
       return;
     }
     if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
-      showToast("⚠️ Naya PIN barabar 4 digits ka hona chahiye!");
+      showToast("⚠️ New PIN must be exactly 4 numeric digits!");
       return;
     }
     if (newPin !== confirmPin) {
-      showToast("⚠️ Confirm PIN match nahi ho raha hai!");
+      showToast("⚠️ New PIN and Confirm PIN do not match!");
       return;
     }
 
@@ -101,21 +101,21 @@ export default function SettingsTab({
     setCurrentPin("");
     setNewPin("");
     setConfirmPin("");
-    showToast("✅ Admin PIN safalta-purvak badal diya gaya hai!");
+    showToast("✅ Admin access PIN updated successfully!");
   };
 
   // Handler: Save Agency Profile
   const handleSaveAgencyProfile = (e) => {
     e.preventDefault();
     localStorage.setItem("yatra_agency_info", JSON.stringify(agencyProfile));
-    showToast("✅ Agency profile details save ho gayi hain!");
+    showToast("✅ Agency profile details saved successfully!");
   };
 
   // Handler: Save Bot Config
   const handleSaveBotConfig = (e) => {
     e.preventDefault();
     localStorage.setItem("yatra_bot_settings", JSON.stringify(botConfig));
-    showToast("✅ AI Yatra Saathi settings save ho gayi hain!");
+    showToast("✅ AI Assistant preferences saved successfully!");
   };
 
   // Handler: Save Supabase Cloud Config
@@ -123,7 +123,7 @@ export default function SettingsTab({
     e.preventDefault();
     if (supabaseUrl) localStorage.setItem("yatra_supabase_url", supabaseUrl.trim());
     if (supabaseKey) localStorage.setItem("yatra_supabase_key", supabaseKey.trim());
-    showToast("✅ Cloud database parameters update ho gaye hain!");
+    showToast("✅ Cloud database parameters updated successfully!");
   };
 
   // Handler: Test DB Connection
@@ -134,7 +134,7 @@ export default function SettingsTab({
     if (result.success) {
       if (result.tableMissing) {
         setShowSqlGuide(true);
-        showToast("⚠️ Connected! Lekin 'leads' table banani padegi.");
+        showToast("⚠️ Connected! Please create the 'leads' table using the SQL guide.");
       } else {
         showToast("🟢 " + result.message);
       }
@@ -149,10 +149,10 @@ export default function SettingsTab({
     const res = await syncLocalLeadsToSupabase();
     setDbTesting(false);
     if (res.success) {
-      showToast(`☁️ ${res.count} leads Supabase Cloud par sync ho gaye!`);
+      showToast(`☁️ Successfully synced ${res.count} leads to Supabase Cloud!`);
       if (onReloadData) onReloadData();
     } else {
-      showToast("❌ Sync fail: " + res.message);
+      showToast("❌ Cloud sync failed: " + res.message);
     }
   };
 
@@ -175,7 +175,7 @@ export default function SettingsTab({
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    showToast("📥 CRM Data Backup download ho gaya!");
+    showToast("📥 CRM Data Backup downloaded successfully!");
   };
 
   // Handler: Import Backup JSON
@@ -201,10 +201,10 @@ export default function SettingsTab({
           localStorage.setItem("yatra_bot_settings", JSON.stringify(parsed.bot));
           setBotConfig(parsed.bot);
         }
-        showToast("✅ Backup safalta-purvak restore ho gaya!");
+        showToast("✅ Backup restored successfully!");
         if (onReloadData) onReloadData();
       } catch (err) {
-        showToast("❌ Invalid JSON file! Kripya valid backup file chunein.");
+        showToast("❌ Invalid JSON file! Please choose a valid backup file.");
       }
     };
     reader.readAsText(file);
@@ -213,18 +213,18 @@ export default function SettingsTab({
 
   // Handler: Reseed Leads
   const handleReseedLeads = () => {
-    if (window.confirm("Kya aap sach me demo devotee leads restore karna chahte hain?")) {
+    if (window.confirm("Are you sure you want to restore the sample devotee leads?")) {
       reseedLocalLeads();
-      showToast("🔄 Demo devotee leads restore ho gaye!");
+      showToast("🔄 Sample devotee leads restored successfully!");
       if (onReloadData) onReloadData();
     }
   };
 
   // Handler: Reset Packages
   const handleResetPackages = () => {
-    if (window.confirm("Kya aap sach me standard packages restore karna chahte hain?")) {
+    if (window.confirm("Are you sure you want to restore the standard pilgrimage packages?")) {
       resetPackages();
-      showToast("🔄 Standard Yatra packages restore ho gaye!");
+      showToast("🔄 Standard pilgrimage packages restored successfully!");
       if (onReloadData) onReloadData();
     }
   };
@@ -232,13 +232,13 @@ export default function SettingsTab({
   // Handler: Factory Reset
   const handleFactoryReset = () => {
     const confirmed = window.confirm(
-      "⚠️ DHYAN DEIN: Isse saare leads aur local changes delete ho kar factory defaults par reset ho jayenge. Kya aap aage badhna chahte hain?"
+      "⚠️ WARNING: This will permanently delete all cached devotee leads, custom tour packages, and reset the admin PIN to default (1234). Proceed with factory reset?"
     );
     if (confirmed) {
       clearAllLocalLeads();
       resetPackages();
       localStorage.removeItem("yatra_admin_pin");
-      showToast("⚠️ All data reset to factory defaults!");
+      showToast("⚠️ All CRM data reset to factory defaults!");
       if (onReloadData) onReloadData();
     }
   };
@@ -249,7 +249,7 @@ export default function SettingsTab({
       <div className="settings-header-banner">
         <div className="settings-header-info">
           <h2>⚙️ System & Agency Settings</h2>
-          <p>Admin security, Agency profile, AI assistant parameters aur database backups manage karein</p>
+          <p>Manage administrator security, agency profile, AI parameters, and cloud database synchronization.</p>
         </div>
         <div className="settings-header-actions">
           <button className="btn-lock-session" onClick={onLockDashboard} title="Lock Admin Session">
@@ -264,7 +264,7 @@ export default function SettingsTab({
           className={`settings-nav-pill ${activeSection === "all" ? "active" : ""}`}
           onClick={() => setActiveSection("all")}
         >
-          Sabhi Settings (All)
+          All Settings
         </button>
         <button
           className={`settings-nav-pill ${activeSection === "security" ? "active" : ""}`}
@@ -282,7 +282,7 @@ export default function SettingsTab({
           className={`settings-nav-pill ${activeSection === "ai" ? "active" : ""}`}
           onClick={() => setActiveSection("ai")}
         >
-          🤖 AI Saathi Persona
+          🤖 AI Persona Settings
         </button>
         <button
           className={`settings-nav-pill ${activeSection === "database" ? "active" : ""}`}
@@ -294,7 +294,7 @@ export default function SettingsTab({
           className={`settings-nav-pill ${activeSection === "backup" ? "active" : ""}`}
           onClick={() => setActiveSection("backup")}
         >
-          💾 Backup & Reset
+          💾 Backup & Restore
         </button>
       </div>
 
@@ -308,7 +308,7 @@ export default function SettingsTab({
                 <span className="card-pro-icon">🔐</span>
                 <div>
                   <h4>Admin Security & Access PIN</h4>
-                  <p>Dashboard login PIN badalein (Default: 1234)</p>
+                  <p>Update administrator dashboard login PIN (Default: 1234)</p>
                 </div>
               </div>
               <span className={`status-badge ${activeSavedPin === "1234" ? "badge-warning" : "badge-success"}`}>
@@ -363,9 +363,9 @@ export default function SettingsTab({
                     checked={showPinText}
                     onChange={(e) => setShowPinText(e.target.checked)}
                   />
-                  <span>Show PIN characters</span>
+                  <span>Show PIN digits</span>
                 </label>
-                <span className="helper-hint">Only numbers allowed (0-9)</span>
+                <span className="helper-hint">Only numeric characters allowed (0-9)</span>
               </div>
 
               <div className="settings-card-footer">
@@ -384,8 +384,8 @@ export default function SettingsTab({
               <div className="settings-card-pro-title">
                 <span className="card-pro-icon">🏢</span>
                 <div>
-                  <h4>Yatra Agency Profile & Devotee Desk</h4>
-                  <p>In-app branding, direct WhatsApp support and contact details</p>
+                  <h4>Agency Profile & Devotee Helpdesk</h4>
+                  <p>In-app branding, official WhatsApp support, and helpline details</p>
                 </div>
               </div>
             </div>
@@ -393,13 +393,13 @@ export default function SettingsTab({
             <form onSubmit={handleSaveAgencyProfile} className="settings-card-body">
               <div className="settings-grid-2col">
                 <div className="form-group-pro">
-                  <label>Agency / Tour Name</label>
+                  <label>Agency / Organization Name</label>
                   <input
                     type="text"
                     value={agencyProfile.name}
                     onChange={(e) => setAgencyProfile({ ...agencyProfile, name: e.target.value })}
                     className="input-pro"
-                    placeholder="e.g. Bhakti Yatra Travels"
+                    placeholder="e.g. Bhakti Yatra Tours & Travels"
                     required
                   />
                 </div>
@@ -440,7 +440,7 @@ export default function SettingsTab({
               </div>
 
               <div className="form-group-pro" style={{ marginTop: "12px" }}>
-                <label>Devotee Helpline Timings</label>
+                <label>Devotee Helpline Hours</label>
                 <input
                   type="text"
                   value={agencyProfile.timings}
@@ -466,8 +466,8 @@ export default function SettingsTab({
               <div className="settings-card-pro-title">
                 <span className="card-pro-icon">🤖</span>
                 <div>
-                  <h4>Yatra Saathi AI Assistant & Persona</h4>
-                  <p>Model engine, conversation tone aur auto-lead extraction configure karein</p>
+                  <h4>AI Assistant & Persona Settings</h4>
+                  <p>Configure model engine, conversation tone, and automated lead capture</p>
                 </div>
               </div>
               <span className="status-badge badge-model">⚡ Gemini 3.8 Flash Active</span>
@@ -482,8 +482,8 @@ export default function SettingsTab({
                     value={botConfig.tone}
                     onChange={(e) => setBotConfig({ ...botConfig, tone: e.target.value })}
                   >
-                    <option value="bhakt">🙏 Param Bhakt (Jai Shri Ram, Har Har Mahadev, Aadar-bhav)</option>
-                    <option value="advisor">🏛️ Professional Pilgrimage Advisor (Structured & Itinerary-focused)</option>
+                    <option value="bhakt">🙏 Devotional & Warm (Respectful traditional greeting, Jai Shri Ram)</option>
+                    <option value="advisor">🏛️ Professional Pilgrimage Consultant (Structured & itinerary-focused)</option>
                     <option value="concise">⚡ Fast & Concise (Direct package timings & budget)</option>
                   </select>
                 </div>
@@ -498,7 +498,7 @@ export default function SettingsTab({
                     />
                     <label htmlFor="autoExtractCheck" style={{ margin: 0, cursor: "pointer" }}>
                       <strong>Auto-Extract Leads</strong>
-                      <small>Chat se Name, Phone, Dham, Yatri count automatically save karta hai.</small>
+                      <small>Automatically captures Name, Phone, Destination, and Travellers from chat.</small>
                     </label>
                   </div>
                 </div>
@@ -511,7 +511,7 @@ export default function SettingsTab({
                   value={botConfig.welcomeMsg}
                   onChange={(e) => setBotConfig({ ...botConfig, welcomeMsg: e.target.value })}
                   className="input-pro textarea-pro"
-                  placeholder="Devotees ke liye pehla pranam sandesh..."
+                  placeholder="Initial greeting message presented to devotees when opening the chatbot..."
                 />
               </div>
 
@@ -531,8 +531,8 @@ export default function SettingsTab({
               <div className="settings-card-pro-title">
                 <span className="card-pro-icon">☁️</span>
                 <div>
-                  <h4>Database & Supabase Cloud Sync</h4>
-                  <p>Enterprise PostgreSQL database connection & local storage status</p>
+                  <h4>Database & Cloud Synchronization</h4>
+                  <p>Enterprise Supabase PostgreSQL cloud sync & resilient local storage status</p>
                 </div>
               </div>
               <span className={`status-badge ${supabaseUrl ? "badge-success" : "badge-neutral"}`}>
@@ -569,9 +569,9 @@ export default function SettingsTab({
                   <div className="db-dot-live" />
                   <div>
                     <strong>Storage Engine:</strong>{" "}
-                    {supabaseUrl ? "Dual Sync (Supabase PostgreSQL + Local Cache)" : "Local Storage (High-Speed & Resilient)"}
+                    {supabaseUrl ? "Dual Sync (Supabase PostgreSQL + Local Cache)" : "Local Storage Mode (High-Speed & Resilient)"}
                     <div style={{ fontSize: "0.75rem", color: "var(--crm-text-muted)" }}>
-                      Total Cached Leads: <strong>{leads.length}</strong> · Active Yatra Packages:{" "}
+                      Total Cached Leads: <strong>{leads.length}</strong> · Active Pilgrimage Packages:{" "}
                       <strong>{packagesList.length}</strong>
                     </div>
                   </div>
@@ -609,7 +609,7 @@ export default function SettingsTab({
               {showSqlGuide && (
                 <div className="sql-guide-box">
                   <div className="sql-guide-title">
-                    <span>SQL Table Schema (Supabase SQL Editor mein run karein):</span>
+                    <span>SQL Table Schema (Run inside Supabase SQL Editor):</span>
                   </div>
                   <pre className="sql-code-block">
 {`CREATE TABLE leads (
@@ -643,8 +643,8 @@ export default function SettingsTab({
               <div className="settings-card-pro-title">
                 <span className="card-pro-icon">💾</span>
                 <div>
-                  <h4>Data Management, Backup & System Reset</h4>
-                  <p>Full JSON backup download, restore aur factory defaults reset options</p>
+                  <h4>Data Management, Backup & Maintenance</h4>
+                  <p>Download full JSON backup, restore previous data, or reset system defaults</p>
                 </div>
               </div>
             </div>
@@ -656,7 +656,7 @@ export default function SettingsTab({
                   <div className="backup-icon">📥</div>
                   <div className="backup-info">
                     <h5>Download Full Backup</h5>
-                    <p>Saare leads, packages aur settings ko ek JSON file mein export karein.</p>
+                    <p>Export all devotee leads, tour packages, and settings to a JSON backup file.</p>
                   </div>
                   <button className="btn-pro-primary" onClick={handleDownloadBackup}>
                     Download .JSON
@@ -668,7 +668,7 @@ export default function SettingsTab({
                   <div className="backup-icon">📤</div>
                   <div className="backup-info">
                     <h5>Restore from Backup</h5>
-                    <p>Pichle backup JSON file se leads aur packages recover karein.</p>
+                    <p>Recover leads and packages from a previously exported JSON backup file.</p>
                   </div>
                   <label className="btn-pro-outline btn-file-label">
                     <span>Upload .JSON</span>
@@ -686,10 +686,10 @@ export default function SettingsTab({
                   <div className="backup-icon">🔄</div>
                   <div className="backup-info">
                     <h5>Re-seed Sample Leads</h5>
-                    <p>Testing ke liye standard 3 realistic devotee leads dubara load karein.</p>
+                    <p>Reload 3 realistic sample devotee leads for testing and demo purposes.</p>
                   </div>
                   <button className="btn-pro-outline" onClick={handleReseedLeads}>
-                    Restore Leads
+                    Restore Sample Leads
                   </button>
                 </div>
 
@@ -697,8 +697,8 @@ export default function SettingsTab({
                 <div className="backup-action-card">
                   <div className="backup-icon">📦</div>
                   <div className="backup-info">
-                    <h5>Reset Yatra Packages</h5>
-                    <p>Original 6 Dham packages (Ayodhya, Kedarnath, Vaishno, Char Dham) reload karein.</p>
+                    <h5>Reset Pilgrimage Packages</h5>
+                    <p>Reload the original 6 standard pilgrimage packages.</p>
                   </div>
                   <button className="btn-pro-outline" onClick={handleResetPackages}>
                     Reset Packages
@@ -712,7 +712,7 @@ export default function SettingsTab({
                   <span className="danger-icon">⚠️</span>
                   <div>
                     <strong>Danger Zone: Factory Reset</strong>
-                    <p>Saare cached leads aur packages wipe out ho jayenge aur PIN default (1234) ho jayega.</p>
+                    <p>All cached leads, custom packages, and settings will be wiped, and the PIN will reset to default (1234).</p>
                   </div>
                 </div>
                 <button className="btn-danger-solid" onClick={handleFactoryReset}>
@@ -726,4 +726,3 @@ export default function SettingsTab({
     </div>
   );
 }
-

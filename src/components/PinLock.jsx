@@ -31,7 +31,7 @@ export default function PinLock({ onUnlock, onCancel }) {
         sessionStorage.setItem("yatra_crm_auth", "true");
         onUnlock();
       } else {
-        setError("Galat PIN! Kripya sahi PIN daalein.");
+        setError("Incorrect PIN! Please enter the valid security PIN.");
         setDigits(["", "", "", ""]);
         inputRefs[0].current?.focus();
       }
@@ -52,7 +52,7 @@ export default function PinLock({ onUnlock, onCancel }) {
       sessionStorage.setItem("yatra_crm_auth", "true");
       onUnlock();
     } else {
-      setError("Galat PIN! Kripya sahi PIN daalein.");
+      setError("Incorrect PIN! Please enter the valid security PIN.");
       setDigits(["", "", "", ""]);
       inputRefs[0].current?.focus();
     }
@@ -63,7 +63,7 @@ export default function PinLock({ onUnlock, onCancel }) {
       <div className="pin-card-box">
         <div className="pin-brand-icon">ॐ</div>
         <h2>Yatra Saathi CRM</h2>
-        <p>Admin dashboard mein login karne ke liye 4-digit security PIN darj karein</p>
+        <p>Enter your 4-digit security PIN to access the Admin CRM Dashboard</p>
 
         <form className="pin-form" onSubmit={handleSubmit}>
           <div className="pin-boxes-row">
@@ -91,12 +91,12 @@ export default function PinLock({ onUnlock, onCancel }) {
           </button>
 
           <button type="button" className="pin-back-link" onClick={onCancel}>
-            ← Wapas Public Website Par Jayein
+            ← Return to Public Website
           </button>
         </form>
 
         <div className="pin-hint-tag">
-          Default Admin PIN: <strong>1234</strong>
+          Default Access PIN: <strong>1234</strong>
         </div>
       </div>
     </div>

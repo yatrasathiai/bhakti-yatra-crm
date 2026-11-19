@@ -99,7 +99,7 @@ export function getStorageInfo() {
  */
 export async function testSupabaseConnection(url, key) {
   if (!url || !key) {
-    return { success: false, message: "URL aur Anon Key daalna anivarya hai!" };
+    return { success: false, message: "Project URL and Anon API Key are required!" };
   }
 
   try {
@@ -115,7 +115,7 @@ export async function testSupabaseConnection(url, key) {
           success: true,
           tableMissing: true,
           message:
-            "Supabase se connect ho gaya! Lekin 'leads' table create nahi hui hai. Neeche diya SQL script run karein.",
+            "Connected to Supabase! The 'leads' table has not been created yet. Please execute the provided SQL setup script.",
         };
       }
       return { success: false, message: error.message || "Connection failed" };
@@ -169,7 +169,7 @@ export function clearAllLocalLeads() {
  */
 export async function syncLocalLeadsToSupabase() {
   const sb = getSupabase();
-  if (!sb) return { success: false, message: "Supabase connected nahi hai!" };
+  if (!sb) return { success: false, message: "Supabase is not configured or connected!" };
 
   const localLeads = getLocalLeads();
   if (!localLeads.length) return { success: true, count: 0 };

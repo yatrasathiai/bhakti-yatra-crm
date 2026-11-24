@@ -470,7 +470,7 @@ export default function SettingsTab({
                   <p>Configure model engine, conversation tone, and automated lead capture</p>
                 </div>
               </div>
-              <span className="status-badge badge-model">⚡ Gemini 3.8 Flash Active</span>
+              <span className="status-badge badge-model">⚡ Gemini 2.5 Flash Active</span>
             </div>
 
             <form onSubmit={handleSaveBotConfig} className="settings-card-body">

@@ -1311,7 +1311,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     onChange={(e) => setTourForm({ ...tourForm, hindi: e.target.value })}
                   />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="crm-form-row-2col">
                   <div className="crm-form-group">
                     <label>Duration *</label>
                     <input
@@ -1335,7 +1335,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     />
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px" }}>
+                <div className="crm-form-row-split">
                   <div className="crm-form-group">
                     <label>Departure Point</label>
                     <input
@@ -1541,7 +1541,7 @@ export default function CrmDashboard({ onSwitchToChat }) {
                     ))}
                   </select>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="crm-form-row-2col">
                   <div className="crm-form-group">
                     <label>Travellers Count</label>
                     <input

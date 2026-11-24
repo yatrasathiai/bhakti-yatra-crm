@@ -65,3 +65,4 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## 📜 License
 This project is licensed under the MIT License.
+

@@ -42,7 +42,7 @@ export async function extractLeadFromChat(messages) {
 
   if (!hasPhone && !hasName) return null;
 
-  const CANDIDATE_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
+  const CANDIDATE_MODELS = ["gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.5-flash"];
 
   for (const model of CANDIDATE_MODELS) {
     try {

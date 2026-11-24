@@ -32,12 +32,12 @@ Aapka kshetr (scope) SIRF aur SIRF "Bhakti Yatra, Mandir Darshan, aur Pilgrimage
 - Jab user kisi yatra mein interest dikhaye, toh bade aadar se unka travel plan (dates, yatriyon ki sankhya) samjhein.
 - Ant mein polite tarike se unka naam aur WhatsApp number request karein taaki humari yatra team unhe exact itinerary aur packages WhatsApp par bhej sake.`;
 
-// Cascade of models from newest to most stable
+// Cascade of models: starting with active and verified fast models
 const CANDIDATE_MODELS = [
+  "gemini-2.5-flash",
   "gemini-3.8-flash",
   "gemini-3.5-flash",
   "gemini-3.1-flash-lite",
-  "gemini-2.5-flash",
 ];
 
 // Offline knowledge base with strict guardrails
